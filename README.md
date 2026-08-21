@@ -29,6 +29,9 @@ Domain config
 General config
 MCU management
 
+## Design
+See this [design file](https://github.com/neutrino38/elixip/blob/master/docs/design/liveview-adapter.md)
 
+kelescope IS kelixip_liveview.
   
 
