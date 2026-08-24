@@ -2,6 +2,7 @@
 # Construit le tarball source et le RPM de kelescope.
 # Prérequis : elixir, erlang, rpmbuild, accès réseau (hex.pm, GitHub).
 set -euo pipefail
+ORIG_DIR="$(pwd)"
 cd "$(dirname "$0")/.."
 
 VERSION=$(grep -m1 'version:' mix.exs | sed -E 's/.*version: *"([^"]+)".*/\1/')
@@ -25,4 +26,7 @@ rpmbuild \
     --define "_rpmdir ${TOPDIR}/RPMS" \
     -bb rpm/kelescope.spec
 
-echo "RPM(s) produit(s) sous ${TOPDIR}/RPMS"
+mv "${TOPDIR}"/RPMS/*/*.rpm "${ORIG_DIR}/"
+rm -rf "$TOPDIR"
+
+echo "RPM(s) produit(s) dans ${ORIG_DIR}"

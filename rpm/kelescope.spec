@@ -12,7 +12,6 @@ License:        Proprietary
 URL:            https://github.com/neutrino38/kelescope
 Source0:        %{name}-%{version}.tar.gz
 
-BuildRequires:  elixir >= 1.17
 BuildRequires:  erlang >= 26
 BuildRequires:  systemd-rpm-macros
 Requires:       openssl-libs
@@ -35,6 +34,16 @@ des certificats TLS.
 %autosetup
 
 %build
+elixir_version=$(elixir --version 2>/dev/null | sed -n 's/^Elixir \([0-9.]*\).*/\1/p')
+if [ -z "$elixir_version" ]; then
+    echo "elixir >= 1.17 requis pour construire ce paquet (introuvable dans PATH)" >&2
+    exit 1
+fi
+if [ "$(printf '%s\n%s\n' "1.17" "$elixir_version" | sort -V | head -n1)" != "1.17" ]; then
+    echo "elixir >= 1.17 requis pour construire ce paquet (detecte: $elixir_version)" >&2
+    exit 1
+fi
+
 export HOME=%{_builddir}
 export MIX_ENV=prod
 mix local.hex --force
