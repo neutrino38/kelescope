@@ -45,3 +45,8 @@ kelescope IS kelixip_liveview.
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
 Then visit [`localhost:4000`](http://localhost:4000).
+
+## Deploying
+
+RPM packaging (self-contained release under `/opt/kelescope`, systemd
+service, HTTPS on port 8443): [docs/maintenance/paquet-rpm.md](docs/maintenance/paquet-rpm.md).

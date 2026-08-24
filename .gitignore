@@ -35,3 +35,6 @@ kelescope-*.tar
 npm-debug.log
 /assets/node_modules/
 
+# Scratch tree used by rpm/build.sh (SOURCES/BUILD/RPMS/...).
+/rpm/build/
+

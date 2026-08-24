@@ -1,0 +1,26 @@
+[Unit]
+Description=kelescope - interface d'administration web pour kelixip
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=exec
+User=kelixip
+Group=kelixip
+StateDirectory=kelescope
+WorkingDirectory=/var/lib/kelescope
+EnvironmentFile=/etc/kelescope/kelescope.env
+Environment=RELEASE_TMP=/var/lib/kelescope
+ExecStart=/opt/kelescope/bin/kelescope start
+Restart=on-failure
+RestartSec=5
+LimitNOFILE=65536
+
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/kelescope
+
+[Install]
+WantedBy=multi-user.target
