@@ -16,6 +16,8 @@ defmodule Kelescope.Application do
         kelixip_stub_child() ++
         [
           {Kelescope.Kelixip.Link, Application.fetch_env!(:kelescope, Kelescope.Kelixip.Link)},
+          {Kelescope.Kelixip.StatusPoller,
+           Application.fetch_env!(:kelescope, Kelescope.Kelixip.StatusPoller)},
           KelescopeWeb.Endpoint
         ]
 

@@ -43,7 +43,7 @@ doit être mise à jour à la main lors d'un changement de version.
 ## Installer
 
 ```
-dnf install ./kelescope-0.1.0-1.el9.x86_64.rpm
+dnf install ./kelescope-0.1.1-1.el9.x86_64.rpm
 ```
 
 L'installation crée un compte système `kelixip` (sans shell de connexion)

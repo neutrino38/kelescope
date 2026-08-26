@@ -11,6 +11,23 @@ defmodule Kelix.Control do
   """
   use GenServer
 
+  @fake_status %{
+    node: node(),
+    uptime_ms: 3_661_000,
+    instances: %{active: 2},
+    listeners: [
+      %{proto: :udp, addr: "0.0.0.0", port: 5060, up: true},
+      %{proto: :tls, addr: "0.0.0.0", port: 5061, up: true}
+    ],
+    media_pool: [
+      %{name: "ms1", enabled: true, healthy: true},
+      %{name: "ms2", enabled: true, healthy: false}
+    ],
+    modules: [:registrar, :conferencing],
+    module_status: %{conferencing: %{active_conferences: 1, participants: 3}},
+    domains_version: 3
+  }
+
   @fake_rows [
     %{
       id: 1,
@@ -41,13 +58,22 @@ defmodule Kelix.Control do
   ]
 
   def start_link(_opts) do
-    GenServer.start_link(__MODULE__, %{subs: MapSet.new(), rows: @fake_rows}, name: __MODULE__)
+    GenServer.start_link(
+      __MODULE__,
+      %{subs: MapSet.new(), rows: @fake_rows, status: @fake_status},
+      name: __MODULE__
+    )
   end
 
   def subscribe_monitor(pid), do: GenServer.call(__MODULE__, {:subscribe, pid})
 
+  def status(), do: GenServer.call(__MODULE__, :status)
+
   @doc "Pushes `msg` to every subscriber right away, bypassing the random tick (used by tests)."
   def push(msg), do: GenServer.cast(__MODULE__, {:push, msg})
+
+  @doc "Replaces the status `status/0` returns next (used by tests)."
+  def set_status(status), do: GenServer.cast(__MODULE__, {:set_status, status})
 
   @impl true
   def init(state) do
@@ -61,9 +87,19 @@ defmodule Kelix.Control do
   end
 
   @impl true
+  def handle_call(:status, _from, state) do
+    {:reply, state.status, state}
+  end
+
+  @impl true
   def handle_cast({:push, msg}, state) do
     for pid <- state.subs, do: send(pid, msg)
     {:noreply, state}
+  end
+
+  @impl true
+  def handle_cast({:set_status, status}, state) do
+    {:noreply, %{state | status: status}}
   end
 
   @impl true

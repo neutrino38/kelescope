@@ -4,11 +4,11 @@
 %global __provides_exclude_from ^/opt/kelescope/.*$
 
 Name:           kelescope
-Version:        0.1.0
+Version:        0.1.1
 Release:        1%{?dist}
 Summary:        Interface d'administration web pour kelixip
 
-License:        Proprietary
+License:        MIT
 URL:            https://github.com/neutrino38/kelescope
 Source0:        %{name}-%{version}.tar.gz
 
@@ -140,5 +140,8 @@ fi
 %attr(0640,root,kelixip) %config(noreplace) %{_sysconfdir}/kelescope/kelescope.env
 
 %changelog
+* Tue Aug 25 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.1.1-1
+- Panneau de statut kelixip (équivalent kelictl status) au-dessus du monitor, rafraîchi toutes les 20s.
+
 * Mon Aug 24 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.1.0-1
 - Paquet initial : release Elixir autonome, service systemd, HTTPS sur le port 8443.

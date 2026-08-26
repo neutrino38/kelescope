@@ -18,4 +18,17 @@ defmodule Kelescope.Kelixip.Control do
       rows when is_list(rows) -> {:ok, rows}
     end
   end
+
+  @doc """
+  Uptime, counters, media-pool and node state of `node` (`kelictl status`'s
+  snapshot). Unlike `subscribe_monitor/2`, there is no push side to this —
+  callers poll.
+  """
+  @spec status(node()) :: {:ok, map()} | {:error, term()}
+  def status(node) do
+    case :rpc.call(node, Kelix.Control, :status, []) do
+      {:badrpc, reason} -> {:error, reason}
+      status when is_map(status) -> {:ok, status}
+    end
+  end
 end

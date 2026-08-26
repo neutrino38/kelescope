@@ -37,4 +37,4 @@ npm-debug.log
 
 # Scratch tree used by rpm/build.sh (SOURCES/BUILD/RPMS/...).
 /rpm/build/
-
+/rpm/*.rpm
