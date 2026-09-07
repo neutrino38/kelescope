@@ -18,6 +18,8 @@ defmodule KelescopeWeb.Router do
     pipe_through :browser
 
     live "/", ScenarioMonitorLive
+    live "/domains", DomainListLive
+    live "/domains/:name", DomainShowLive
   end
 
   # Other scopes may use custom stacks.

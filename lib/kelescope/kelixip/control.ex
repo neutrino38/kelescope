@@ -31,4 +31,44 @@ defmodule Kelescope.Kelixip.Control do
       status when is_map(status) -> {:ok, status}
     end
   end
+
+  @doc """
+  Served domains and their properties (`kelictl domain list`), `domains.toml`
+  order, each with the same live counters `domain/2` returns.
+  """
+  @spec list_domains(node()) :: {:ok, [map()]} | {:error, term()}
+  def list_domains(node) do
+    case :rpc.call(node, Kelix.Control, :domains, []) do
+      {:badrpc, reason} -> {:error, reason}
+      domains when is_list(domains) -> {:ok, domains}
+    end
+  end
+
+  @doc """
+  One domain's properties (`kelictl domain show <name>`): configuration,
+  enabled functions, dial-plan, live counters. `name` is matched against the
+  domain name and its aliases, case-insensitively.
+  """
+  @spec domain(node(), String.t()) :: {:ok, map()} | {:error, :not_found | term()}
+  def domain(node, name) do
+    case :rpc.call(node, Kelix.Control, :domain, [name]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc """
+  Reloads one or more scenario scripts by name (`kelictl reload-script
+  <name…>`). Returns `%{name => :ok | {:error, reason}}`, one entry per name.
+  """
+  @spec reload_scripts(node(), [String.t()]) ::
+          {:ok, %{optional(String.t()) => term()}} | {:error, term()}
+  def reload_scripts(_node, []), do: {:ok, %{}}
+
+  def reload_scripts(node, names) do
+    case :rpc.call(node, Kelix.Control, :reload_script, [names, false]) do
+      {:badrpc, reason} -> {:error, reason}
+      results when is_map(results) -> {:ok, results}
+    end
+  end
 end

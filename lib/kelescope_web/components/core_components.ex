@@ -28,8 +28,23 @@ defmodule KelescopeWeb.CoreComponents do
   """
   use Phoenix.Component
   use Gettext, backend: KelescopeWeb.Gettext
+  use KelescopeWeb, :verified_routes
 
   alias Phoenix.LiveView.JS
+
+  @doc """
+  Top navigation between kelescope's pages.
+  """
+  attr :current, :atom, required: true, values: [:monitor, :domains]
+
+  def nav(assigns) do
+    ~H"""
+    <nav class="flex gap-4 border-b p-2 text-sm">
+      <.link navigate={~p"/"} class={@current == :monitor && "font-semibold"}>Scénarios</.link>
+      <.link navigate={~p"/domains"} class={@current == :domains && "font-semibold"}>Domaines</.link>
+    </nav>
+    """
+  end
 
   @doc """
   Renders flash notices.

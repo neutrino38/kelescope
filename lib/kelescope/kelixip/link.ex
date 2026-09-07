@@ -22,6 +22,10 @@ defmodule Kelescope.Kelixip.Link do
           {:connected | :disconnected | :connecting, %{optional(term()) => map()}}
   def snapshot(server \\ __MODULE__), do: GenServer.call(server, :snapshot)
 
+  @doc "The kelixip node this link targets, for other RPC callers (e.g. domain views)."
+  @spec target_node(GenServer.server()) :: node()
+  def target_node(server \\ __MODULE__), do: GenServer.call(server, :node)
+
   @impl true
   def init(opts) do
     node = Keyword.fetch!(opts, :node)
@@ -44,6 +48,10 @@ defmodule Kelescope.Kelixip.Link do
   @impl true
   def handle_call(:snapshot, _from, state) do
     {:reply, {state.status, state.rows}, state}
+  end
+
+  def handle_call(:node, _from, state) do
+    {:reply, state.node, state}
   end
 
   @impl true

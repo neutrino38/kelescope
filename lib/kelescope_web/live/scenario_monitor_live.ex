@@ -48,6 +48,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   @impl true
   def render(assigns) do
     ~H"""
+    <.nav current={:monitor} />
     <div class="p-6">
       <div class={[
         "mb-4 rounded px-3 py-2 text-sm font-medium",

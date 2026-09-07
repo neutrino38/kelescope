@@ -12,6 +12,7 @@ Monitor liveview: live-refreshing view equivalent to `kelictl monitor`. Read-onl
 
 ### Phase 2 - monitoring
 General kelixip health
+Domain list an detials
 Mediaserver pool
 Registrations view. Ability to remove an AOR.
 DB Connection status
