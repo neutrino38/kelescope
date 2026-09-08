@@ -574,30 +574,32 @@ defmodule Kelix.Control do
           layout =
             align_layout_size(layout_from_args(args, %{comp: 1, size: 6, auto: true}), video)
 
-          {:ok,
-           %{
-             uid: "c-" <> Integer.to_string(System.unique_integer([:positive])),
-             name: Map.get(args, "name") || "conf-#{length(state.conferences) + 1}",
-             domain: domain,
-             did: Map.get(args, "did") || "+339702602#{50 + length(state.conferences)}",
-             mcu: Map.get(args, "mcu") || "ms1",
-             conf_id: System.unique_integer([:positive, :monotonic]),
-             vad: Map.get(args, "vad") || 1,
-             rate: Map.get(args, "rate") || 32_000,
-             medias: medias_from_args(args) || [:audio, :video, :text],
-             dtmf: true,
-             video: video,
-             preferred_video_codec: preferred_video_codec_from_args(args, nil),
-             layout: layout,
-             max_participants: Map.get(args, "max_participants") || 20,
-             destroy_when_empty: Map.get(args, "destroy_when_empty") || false,
-             persistent: true,
-             created_at: DateTime.utc_now(),
-             stale: false,
-             logo: Map.get(args, "logo"),
-             recording: nil,
-             participants: []
-           }}
+          with {:ok, did} <- pick_did(state, domain, Map.get(args, "did")) do
+            {:ok,
+             %{
+               uid: "c-" <> Integer.to_string(System.unique_integer([:positive])),
+               name: Map.get(args, "name") || "conf-#{length(state.conferences) + 1}",
+               domain: domain,
+               did: did,
+               mcu: Map.get(args, "mcu") || "ms1",
+               conf_id: System.unique_integer([:positive, :monotonic]),
+               vad: Map.get(args, "vad") || 1,
+               rate: Map.get(args, "rate") || 32_000,
+               medias: medias_from_args(args) || [:audio, :video, :text],
+               dtmf: true,
+               video: video,
+               preferred_video_codec: preferred_video_codec_from_args(args, nil),
+               layout: layout,
+               max_participants: Map.get(args, "max_participants") || 20,
+               destroy_when_empty: Map.get(args, "destroy_when_empty") || false,
+               persistent: true,
+               created_at: DateTime.utc_now(),
+               stale: false,
+               logo: Map.get(args, "logo"),
+               recording: nil,
+               participants: []
+             }}
+          end
       end
 
     Logger.info(
@@ -724,6 +726,17 @@ defmodule Kelix.Control do
   defp mcu_command(_cmd, _args, state), do: {{:error, :unknown_command}, state}
 
   defp find_conference(state, uid), do: Enum.find(state.conferences, &(&1.uid == uid))
+
+  # Mirrors Kelix.Mod.Mcu.pick_did/3: an explicit DID is honoured even outside any
+  # range, unless the domain already uses it. This double has no DID range, so the
+  # allocation branch just numbers them in sequence instead of erroring.
+  defp pick_did(state, domain, did) when is_binary(did) do
+    if Enum.any?(state.conferences, &(&1.domain == domain and &1.did == did)),
+      do: {:error, :did_in_use},
+      else: {:ok, did}
+  end
+
+  defp pick_did(state, _domain, nil), do: {:ok, "+339702602#{50 + length(state.conferences)}"}
 
   defp find_participant(conf, part_id) do
     Enum.find(conf.participants, &(&1.part_id == coerce_part_id(part_id)))

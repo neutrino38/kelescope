@@ -82,6 +82,28 @@ from, state, medias, joined_at`.
 éventuel) — jamais la conférence complète : kelescope réinterroge la liste
 après création plutôt que de faire confiance à cette réponse.
 
+### DID
+
+Le DID est le numéro sur lequel la conférence répond. `conference.create`
+l'accepte comme argument optionnel (`@create_args`, `mcu.ex`, dépôt elixip) :
+
+- DID saisi : elixip l'honore, **même hors de la plage** configurée pour le
+  domaine (`pick_did/3` : « the range is an allocation pool, not an admission
+  filter »). Il refuse `:did_in_use` si ce domaine l'utilise déjà.
+- DID laissé vide : elixip prend le premier numéro libre de la plage du
+  domaine. Sans plage configurée pour ce domaine, il refuse `:did_required` ;
+  plage pleine, `:no_did_available`.
+
+Kelescope traduit ces trois refus en message d'erreur explicite, comme
+`:not_empty` à la destruction.
+
+**Le DID n'est pas modifiable après la création.** elixip le déclare en
+lecture seule (`@conference_readonly`, `mcu.ex`), au même titre que le domaine
+et le mediaserver : `conference.update` répond `read-only field(s): did` dès
+que l'argument est présent, et rejette alors toute la mise à jour. Le
+formulaire de propriétés n'affiche donc aucun champ DID ; le détail déplié
+montre le DID en lecture seule.
+
 ### Résolution et débit vidéo, codec préféré
 
 `video.size` et `layout.size` partagent le même vocabulaire de résolutions
@@ -222,8 +244,10 @@ chacune sur deux colonnes :
 
 1. **Paramètres généraux** — domaine (liste déroulante des domaines servis,
    via `Kelescope.Kelixip.DomainsLink.snapshot/0`, même source que l'écran
-   Domaines ; absent en modification, le domaine n'est pas modifiable) et
-   nom ; participants max et médias répondus ; détruire quand vide.
+   Domaines) et DID (texte libre, vide = attribué par elixip) ; nom ;
+   participants max et médias répondus ; détruire quand vide. Domaine et DID
+   sont absents en modification : elixip les déclare en lecture seule (voir
+   « DID » ci-dessus).
 2. **Paramètres audio** — fréquence de mixage et mode VAD.
 3. **Paramètres vidéo** — résolution et débit ; codec vidéo préféré.
 4. **Mosaïque** — sélecteur de disposition par icônes, bascule automatique,
@@ -275,7 +299,11 @@ l'admin sur create/delete. `participant.show` y renvoie des statistiques
 déterministes (dérivées du `part_id`), pas de véritables compteurs RTP.
 `video.size`/`layout.size` y sont maintenus égaux (`align_layout_size/2`),
 comme le fait elixip côté réel ; `medias: []` n'y est jamais accepté non
-plus, même logique que le vrai module.
+plus, même logique que le vrai module. `conference.create` y honore un DID
+explicite et refuse `:did_in_use` si le domaine l'utilise déjà, comme
+`pick_did/3` ; le double n'a pas de plage de DID, donc un DID laissé vide y
+est simplement numéroté à la suite au lieu de pouvoir échouer
+`:did_required`/`:no_did_available`.
 
 ## Tests
 
@@ -285,7 +313,10 @@ plus, même logique que le vrai module.
   bascule automatique de mosaïque, fréquence de mixage, médias répondus et logo
   affichés puis modifiables (y compris effacer la préférence de codec,
   désactiver la bascule automatique, et décocher tous les médias sans jamais
-  les vider), domaine proposé en liste déroulante à la création, état
+  les vider), domaine proposé en liste déroulante à la création, DID saisi à
+  la création puis retrouvé dans le détail, DID déjà pris signalé par un
+  message d'erreur, absence de champ DID dans le formulaire de propriétés,
+  état
   « en cours d'enregistrement » à l'affichage, création puis destruction
   avec trace admin (`capture_log`, même piège de niveau de journalisation
   que les tests de phase 2), destruction d'une conférence non vide
@@ -311,9 +342,13 @@ plus, même logique que le vrai module.
   de nom d'administrateur.
 - Chaque layout affiche une icône distincte des onze autres.
 - Une erreur RPC (conférence non trouvée, non vide, déjà enregistrée, pas en
-  cours d'enregistrement) affiche un message, jamais un crash de page.
+  cours d'enregistrement, DID déjà pris ou impossible à attribuer) affiche un
+  message, jamais un crash de page.
 - Le domaine d'une nouvelle conférence se choisit dans une liste des domaines
   réellement servis, jamais saisi en texte libre.
+- Le DID d'une nouvelle conférence se saisit, ou se laisse vide pour qu'elixip
+  l'attribue. Le formulaire de propriétés d'une conférence existante ne
+  propose pas de DID.
 - La résolution vidéo, le débit vidéo, le codec vidéo préféré, le mode VAD,
   la bascule automatique de mosaïque, la fréquence de mixage, les médias
   répondus et le logo d'une conférence sont visibles dans le détail et
@@ -335,8 +370,9 @@ plus, même logique que le vrai module.
   (`preferred_video_codec`) l'est.
 - `slot.*` (épinglage manuel d'une mosaïque).
 - Case « forcer » à la destruction (`force: true` sur `conference.delete`).
-- Allocation de DID, sélection explicite du `mcu` (mediaserver) à la
-  création.
+- Sélection explicite du `mcu` (mediaserver) à la création.
+- Modification du DID d'une conférence existante : elixip l'interdit (voir
+  « DID » ci-dessus).
 - Téléversement d'une image de logo : le champ n'accepte qu'un nom de
   fichier déjà présent sur le média serveur (voir « Fréquence de mixage, médias
   répondus, logo » ci-dessus) — kelescope n'a pas de canal pour y déposer un

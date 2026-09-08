@@ -108,6 +108,65 @@ defmodule KelescopeWeb.McuLiveTest do
     assert html =~ "throwaway.local"
   end
 
+  test "creating a conference with an explicit DID keeps that DID", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    view |> element("button", "Nouvelle conférence") |> render_click()
+
+    view
+    |> form("form[phx-submit='submit_conference_form']", %{
+      "domain" => "example.com",
+      "did" => "+33970260299",
+      "name" => "temp-did-conf"
+    })
+    |> render_submit()
+
+    view
+    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> render_submit()
+
+    html = view |> element("[phx-click=toggle]", "temp-did-conf") |> render_click()
+
+    assert html =~ "+33970260299"
+  end
+
+  test "creating a conference on a DID already in use reports the conflict", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    view |> element("button", "Nouvelle conférence") |> render_click()
+
+    view
+    |> form("form[phx-submit='submit_conference_form']", %{
+      "domain" => "example.com",
+      "did" => "+33970260240",
+      "name" => "temp-did-clash-conf"
+    })
+    |> render_submit()
+
+    html =
+      view
+      |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+      |> render_submit()
+
+    assert html =~ "DID est déjà utilisé"
+    refute html =~ "temp-did-clash-conf"
+  end
+
+  test "the properties form of an existing conference offers no DID field", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    view |> element("[phx-click=toggle]", "standup") |> render_click()
+
+    html =
+      view
+      |> element("button[phx-value-uid='c-standup'][phx-click='edit_conference']")
+      |> render_click()
+
+    # elixip declares `did` read-only on conference.update (@conference_readonly,
+    # mcu.ex): sending it back would fail the whole update.
+    refute html =~ ~s(name="did")
+  end
+
   test "an already-recording conference offers to stop, not start", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/mcu")
 

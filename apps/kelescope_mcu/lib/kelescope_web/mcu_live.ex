@@ -143,7 +143,7 @@ defmodule KelescopeWeb.McuLive do
           socket |> assign(pending_create: nil, error: nil) |> refresh_list()
 
         {:error, reason} ->
-          assign(socket, pending_create: nil, error: inspect(reason))
+          assign(socket, pending_create: nil, error: create_error_message(reason))
       end
 
     {:noreply, socket}
@@ -233,6 +233,7 @@ defmodule KelescopeWeb.McuLive do
   defp form_params(nil) do
     %{
       "domain" => "",
+      "did" => "",
       "name" => "",
       "max_participants" => "20",
       "destroy_when_empty" => "false",
@@ -274,6 +275,7 @@ defmodule KelescopeWeb.McuLive do
   defp form_attrs(params) do
     %{}
     |> maybe_put_string(params, "domain")
+    |> maybe_put_string(params, "did")
     |> maybe_put_string(params, "name")
     |> maybe_put_int(params, "max_participants")
     |> maybe_put_int(params, "vad")
@@ -356,6 +358,20 @@ defmodule KelescopeWeb.McuLive do
       v -> Map.put(video, video_key, String.to_integer(v))
     end
   end
+
+  defp create_error_message(:did_in_use),
+    do: gettext("Ce DID est déjà utilisé par une conférence de ce domaine.")
+
+  defp create_error_message(:did_required),
+    do:
+      gettext(
+        "Aucun DID donné, et aucune plage de DID configurée pour ce domaine : saisissez un DID."
+      )
+
+  defp create_error_message(:no_did_available),
+    do: gettext("Plus aucun DID libre dans la plage de ce domaine : saisissez un DID.")
+
+  defp create_error_message(reason), do: gettext("Erreur : %{reason}", reason: inspect(reason))
 
   defp delete_error_message(:not_empty),
     do: gettext("Impossible de détruire : la conférence a encore des participants.")
@@ -681,6 +697,14 @@ defmodule KelescopeWeb.McuLive do
               value={@params["domain"]}
               prompt={gettext("Choisir un domaine")}
               required
+            />
+            <.input
+              :if={@mode == :create}
+              type="text"
+              name="did"
+              label="DID"
+              value={@params["did"]}
+              placeholder={gettext("vide : attribué dans la plage du domaine")}
             />
             <.input type="text" name="name" label={gettext("Nom")} value={@params["name"]} />
             <.input
