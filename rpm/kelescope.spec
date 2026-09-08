@@ -58,7 +58,9 @@ des certificats TLS.
 
 %package app
 Summary:        Application kelescope (interface web)
-Requires:       kelescope-runtime >= %{min_runtime}
+Requires:         kelescope-runtime >= %{min_runtime}
+Requires(posttrans): systemd
+Requires(postun):    systemd
 
 %description app
 Code de l'interface web de kelescope, installe dans
@@ -98,6 +100,8 @@ cp -a _build/prod/rel/kelescope/. %{buildroot}/opt/kelescope/
 install -d %{buildroot}/opt/kelescope/plugins/kelescope-%{abi}
 cp -aL _build/prod/lib/kelescope/ebin _build/prod/lib/kelescope/priv \
     %{buildroot}/opt/kelescope/plugins/kelescope-%{abi}/
+
+install -Dm755 rpm/kelescope-reload-plugin %{buildroot}/opt/kelescope/bin/kelescope-reload-plugin
 
 install -Dm644 rpm/kelescope.service %{buildroot}%{_unitdir}/kelescope.service
 install -Dm640 rpm/kelescope.env %{buildroot}%{_sysconfdir}/kelescope/kelescope.env
@@ -173,6 +177,14 @@ fi
 
 %postun runtime
 %systemd_postun_with_restart kelescope.service
+
+%posttrans app
+/opt/kelescope/bin/kelescope-reload-plugin kelescope || :
+
+%postun app
+if [ "$1" -eq 0 ]; then
+    systemctl try-restart kelescope >/dev/null 2>&1 || :
+fi
 
 %files
 

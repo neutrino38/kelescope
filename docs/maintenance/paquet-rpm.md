@@ -222,11 +222,42 @@ Mise à jour de la seule interface web, quand le socle n'a pas changé :
 
 ```
 dnf upgrade ./kelescope-app-<version>-1.el9.x86_64.rpm
-systemctl restart kelescope
 ```
 
-Le service doit être redémarré à la main : le rechargement à chaud n'est pas
-encore livré.
+Le service n'est pas redémarré. En fin de transaction, rpm appelle
+`/opt/kelescope/bin/kelescope-reload-plugin`, qui recharge les modules dans le
+nœud en marche : les autres pages ne sont pas interrompues.
+
+Trois cas, tous sûrs :
+
+- service arrêté : le script ne fait rien, le nouveau code sera pris au
+  prochain démarrage ;
+- nœud injoignable ou rechargement en échec : le script bascule sur
+  `systemctl try-restart kelescope` et l'écrit sur la sortie d'erreur ;
+- rechargement réussi : le script affiche la liste des modules chargés.
+
+Un onglet déjà ouvert sur une page rechargée se remonte tout seul : le
+processus LiveView qui exécutait l'ancien code est tué, et le navigateur se
+reconnecte. Les autres onglets ne bougent pas.
+
+## Savoir ce qui tourne
+
+Le numéro de version du RPM ne décrit plus l'ensemble : une machine peut porter
+un socle et une application de versions différentes.
+
+```
+/opt/kelescope/bin/kelescope rpc "Kelescope.Boot.Loader.versions() |> IO.inspect()"
+```
+
+```
+%{
+  kelescope_boot: %{build: "0.2.0-1.el9", abi: "1.0.0"},
+  kelescope: %{build: "0.2.0-1.el9", abi: "1.0.0"}
+}
+```
+
+`build` est la version produit, celle du RPM. `abi` est le numéro de contrat
+interne, figé.
 
 Le paquet `kelescope-app` déclare `Requires: kelescope-runtime >= <version
 minimale>`. Cette borne est tenue à la main dans `rpm/kelescope.spec` : elle est

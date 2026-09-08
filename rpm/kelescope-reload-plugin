@@ -1,0 +1,25 @@
+#!/bin/sh
+# Recharge une application de kelescope dans le noeud en marche, sans le
+# redemarrer. Appele par le %posttrans du paquet de la partie concernee.
+set -eu
+
+app="${1:?usage: kelescope-reload-plugin <application>}"
+env_file="${KELESCOPE_ENV_FILE:-/etc/kelescope/kelescope.env}"
+root="${KELESCOPE_ROOT:-/opt/kelescope}"
+
+systemctl is-active --quiet kelescope || exit 0
+
+# Un script lance par rpm n'herite pas de l'environnement systemd : sans cela,
+# RELEASE_NODE, RELEASE_COOKIE et RELEASE_DISTRIBUTION manquent a bin/kelescope.
+if [ -r "$env_file" ]; then
+    set -a
+    . "$env_file"
+    set +a
+fi
+
+if "$root/bin/kelescope" rpc "Kelescope.Boot.Loader.reload(:${app}) |> IO.inspect()"; then
+    exit 0
+fi
+
+echo "kelescope : rechargement a chaud de ${app} impossible, redemarrage du service" >&2
+systemctl try-restart kelescope

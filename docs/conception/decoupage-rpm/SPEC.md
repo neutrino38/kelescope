@@ -318,16 +318,17 @@ le plus faible une fois les deux premières livrées.
 | `Application.load/1` sur une application dont la configuration est déjà posée | Les valeurs posées sont conservées. `runtime.exs` peut donc configurer une partie avant que le chargeur ne la charge. |
 | `Application.unload/1` | Vide la configuration de l'application. `reload/1` doit réappliquer les surcharges mémorisées, sinon la partie repart sans sa configuration. |
 | `reload/1` sur une partie modifiée, nœud en marche | Le nouveau code répond, un module ajouté est chargé, un module supprimé est purgé et devient introuvable, le processus supervisé redémarre. La durée de fonctionnement du nœud n'est pas remise à zéro : pas de redémarrage. |
+| Le rechargement sur l'application kelescope empaquetée | Le titre servi par l'endpoint change après rechargement, et la durée de fonctionnement du nœud passe de 8 s à 45 s sans remise à zéro. |
 | `priv` dans `_build/prod/lib/<application>/` | C'est un lien symbolique vers `apps/<application>/priv`. La copie vers `plugins/` doit le dérouler (`cp -aL`), sinon le paquet ne contient ni les assets ni les traductions. |
 | La chaîne complète, release empaquetée puis démarrée depuis les RPM | Le chargeur monte `:kelescope`, l'endpoint sert en HTTPS, les trois pages répondent, les assets digérés sont servis depuis le `priv` du plugin. |
 | Deux constructions successives du paquet `kelescope-runtime` | 2 fichiers diffèrent sur 1552 : `releases/COOKIE`, que `mix release` régénère à chaque construction, et un `.beam` de `phoenix_live_dashboard`, non reproductible. Aucun fichier de kelescope. |
-| Les trois branches de `kelescope-reload-plugin` | Nominale, service arrêté, et repli sur `try-restart` quand le nœud est injoignable : les trois se comportent comme prévu. |
+| Les trois branches de `kelescope-reload-plugin`, tel que livré par le paquet | Nominale, service arrêté, et repli sur `try-restart` quand le nœud est injoignable : les trois se comportent comme prévu. |
 
 ## Reste à éprouver
 
-- `bin/kelescope rpc` lancé depuis un vrai `%posttrans`, sur EL9, avec
-  `kelescope.env` sourcé. Le script a été éprouvé hors du contexte rpm
-  seulement.
+- Le déclenchement du rechargement par rpm lui-même. `%posttrans` et `%postun`
+  sont dans le paquet, mais le script a été lancé à la main, hors transaction
+  rpm.
 - L'installation par `dnf` sur une machine EL9, et le service systemd.
 
 ## Tests

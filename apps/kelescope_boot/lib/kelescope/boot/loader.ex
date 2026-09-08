@@ -65,4 +65,85 @@ defmodule Kelescope.Boot.Loader do
       {:error, reason} -> raise "plugin #{app} : démarrage impossible (#{inspect(reason)})"
     end
   end
+
+  @doc """
+  Recharge une application déjà montée, sans redémarrer le nœud.
+
+  Les processus qui exécutent encore l'ancien code d'un module rechargé sont
+  tués : une vue LiveView ouverte sur une page rechargée se remonte côté client.
+  """
+  def reload(app) do
+    anciens = Application.spec(app, :modules) || nil
+
+    if is_nil(anciens) do
+      raise "plugin #{app} : non chargé, un rechargement à chaud n'est pas possible"
+    end
+
+    arreter(app)
+    :ok = Application.unload(app)
+    :ok = Application.load(app)
+    restaurer_surcharges(app)
+
+    nouveaux = Application.spec(app, :modules) || []
+    retires = anciens -- nouveaux
+
+    Enum.each(retires, fn module ->
+      :code.purge(module)
+      :code.delete(module)
+    end)
+
+    Enum.each(nouveaux, fn module ->
+      :code.purge(module)
+
+      case :code.load_file(module) do
+        {:module, ^module} ->
+          :ok
+
+        {:error, reason} ->
+          raise "plugin #{app} : module #{module} illisible (#{inspect(reason)})"
+      end
+    end)
+
+    {:ok, _demarrees} = Application.ensure_all_started(app)
+
+    {:ok, %{application: app, retires: retires, charges: nouveaux}}
+  end
+
+  @doc """
+  Version d'ABI et version produit de chaque application chargée.
+
+  Le numéro de version du RPM ne décrit plus ce qui tourne : une machine peut
+  porter un socle et une partie construits séparément.
+  """
+  def versions do
+    for app <- [:kelescope_boot | applications_installees()], into: %{} do
+      {app,
+       %{
+         abi: to_string(Application.spec(app, :vsn) || ~c""),
+         build: Application.get_env(app, :build)
+       }}
+    end
+  end
+
+  defp applications_installees do
+    plugins_dir()
+    |> Path.join("*/ebin/*.app")
+    |> Path.wildcard()
+    |> Enum.sort()
+    |> Enum.map(&(&1 |> Path.basename(".app") |> String.to_atom()))
+  end
+
+  defp arreter(app) do
+    case Application.stop(app) do
+      :ok -> :ok
+      {:error, {:not_started, ^app}} -> :ok
+      {:error, reason} -> raise "plugin #{app} : arrêt impossible (#{inspect(reason)})"
+    end
+  end
+
+  defp restaurer_surcharges(app) do
+    for {cle, valeur} <- :persistent_term.get({__MODULE__, app, :overrides}, []) do
+      Application.put_env(app, cle, valeur)
+    end
+  end
 end
