@@ -116,7 +116,7 @@ par systemd (`EnvironmentFile=`).
 | `PHX_HOST` | Nom d'hôte public, utilisé pour générer les URLs. |
 | `SECRET_KEY_BASE` | Secret de signature des sessions. Au moins 64 caractères, sinon le service démarre mais renvoie une erreur 500 sur chaque requête. Générer avec `openssl rand -base64 48`, directement sur la machine cible (voir remarque sur le copier-coller ci-dessous). |
 | `RELEASE_NODE` | Identité du nœud Erlang de kelescope (nom long, ex. `kelescope@host.example.org`). Nécessite `RELEASE_DISTRIBUTION=name`. |
-| `RELEASE_DISTRIBUTION` | Mode de distribution Erlang. À positionner à `name` : une release Elixir démarre par défaut en noms courts (`sname`), incompatible avec un `RELEASE_NODE` en nom long ou en adresse IP. Sans cette variable, le service ne démarre pas (`net_kernel` échoue avec `nodistribution`). |
+| `RELEASE_DISTRIBUTION` | Mode de distribution Erlang. Livré à `name` : une release Elixir démarre par défaut en noms courts (`sname`), incompatible avec un `RELEASE_NODE` en nom long ou en adresse IP. Sans cette variable, le service ne démarre pas (`net_kernel` échoue avec `nodistribution`). Ne pas la retirer. |
 | `RELEASE_COOKIE` | Cookie Erlang du nœud kelescope lui-même. Laissé vide, la valeur par défaut vient de `releases/COOKIE`, régénéré à chaque construction du socle. À renseigner si cette valeur doit rester stable, ou si plusieurs nœuds kelescope doivent partager une identité. |
 | `KELIXIP_NODE` | Nœud kelixip à surveiller (nom long). |
 | `KELIXIP_COOKIE` | Cookie Erlang partagé avec ce nœud kelixip, le même que celui utilisé par `kelictl`. Doit être identique octet pour octet à celui du nœud kelixip (voir remarque sur le copier-coller ci-dessous) : la moindre différence, même invisible, fait échouer la connexion avec `Invalid challenge reply` dans le journal de kelixip. |
@@ -211,7 +211,7 @@ Symptômes fréquents dans `journalctl -u kelescope` :
 
 | Message | Cause |
 |---|---|
-| `failed_to_start_child,net_kernel,{'EXIT',nodistribution}` | `RELEASE_DISTRIBUTION=name` absent, voir la table des variables. |
+| `Can't set short node name!` ou `failed_to_start_child,net_kernel,{'EXIT',nodistribution}` | `RELEASE_DISTRIBUTION=name` a été retiré de `kelescope.env`. Le premier message apparaît quand `RELEASE_NODE` porte un nom long, le second quand il n'en porte pas. |
 | `Runtime terminating during boot` (sans autre détail) | Le plus souvent `KELESCOPE_SSL_CERTFILE`/`KELESCOPE_SSL_KEYFILE` illisible par `kelixip`, voir la section certificats. |
 | `plugin kelescope_… : module … illisible` | Le paquet de cette partie est incomplet ou corrompu. Le nœud refuse de démarrer plutôt que de tourner amputé. Réinstaller le paquet. |
 | Une page répond 500, les autres répondent | Le paquet de cette page n'est pas installé. La route vit dans `kelescope-core`, la vue dans son propre paquet. |
@@ -225,6 +225,11 @@ Mise à jour complète :
 ```
 dnf upgrade ./kelescope-*.rpm
 ```
+
+Depuis une installation `0.1.1`, qui livrait un paquet unique, la mise à jour
+directe n'est pas prévue : désinstaller `kelescope`, puis installer les six
+paquets. `/etc/kelescope/` et le compte `kelixip` survivent à la
+désinstallation.
 
 Mise à jour d'une seule page, quand le socle n'a pas changé :
 
