@@ -62,7 +62,7 @@ utile embarquée dans la release.
 Le répertoire des plugins vaut `<RELEASE_ROOT>/plugins`, surchargeable par
 `KELESCOPE_PLUGINS_DIR` pour le développement et les tests.
 
-Séquence au démarrage, dans cet ordre :
+Séquence de chargement, dans cet ordre :
 
 1. lister `plugins/*/ebin`, et `:code.add_pathz/1` sur chacun ;
 2. `Application.load/1` sur chaque application trouvée ;
@@ -70,15 +70,25 @@ Séquence au démarrage, dans cet ordre :
    clé `modules` de son fichier `.app`, par `:code.load_file/1` ;
 4. `Application.ensure_all_started/1` sur chaque application chargée.
 
-L'étape 3 est obligatoire en mode `embedded`, où rien ne se charge à la demande.
-Ce mode est conservé volontairement : un module manquant se signale au
-démarrage, pas six heures plus tard.
+L'étape 3 n'est pas une optimisation. Sans elle, l'étape 4 échoue sur un `undef`
+de `<Application>.start/2` : en mode `embedded`, rien ne se charge à la demande,
+et les modules d'un plugin ne figurent dans aucun `primLoad`. Ce mode est
+conservé volontairement. Un module manquant se signale au démarrage, pas six
+heures plus tard.
 
 L'étape 4 laisse OTP résoudre l'ordre à partir des dépendances déclarées.
 `kelescope_core` démarre donc avant les autres, sans que le chargeur ait à
 connaître cet ordre.
 
-Un échec à l'une de ces étapes arrête le démarrage avec un message nommant
+**La séquence ne s'exécute pas depuis `start/2`.** Appeler
+`Application.ensure_all_started/1` depuis la fonction `start/2` d'une autre
+application bloque sans fin : le contrôleur d'applications d'OTP est occupé à
+démarrer l'appelant. `kelescope_boot` supervise donc un processus
+`Kelescope.Boot.Starter`, dont `init/1` retourne `{:ok, state, {:continue,
+:load}}`. `start/2` rend la main, le contrôleur se libère, puis
+`handle_continue/2` exécute la séquence.
+
+Un échec à l'une des quatre étapes arrête le nœud avec un message nommant
 l'application et la cause. Pas de démarrage partiel silencieux.
 
 ### Gel des versions OTP
@@ -153,10 +163,15 @@ interactive de première installation — vont dans `kelescope-runtime`.
 `%build` compile l'umbrella, construit les assets, puis produit la release.
 
 `mix release` n'embarque que `kelescope_boot` et les dépendances hex. Les quatre
-parties ne figurent pas dans le `.rel`.
+parties ne figurent pas dans le `.rel`, parce qu'elles ne sont pas dépendances de
+`kelescope_boot`.
 
-`%install` copie ensuite `_build/prod/lib/kelescope_{core,monitor,domaines,mcu}`
-vers `%{buildroot}/opt/kelescope/plugins/`.
+`%install` copie ensuite, pour chaque partie, **uniquement `ebin/` et `priv/`**
+depuis `_build/prod/lib/<application>/` vers
+`%{buildroot}/opt/kelescope/plugins/<application>-1.0.0/`. Le répertoire
+`consolidated/` produit par la compilation ne doit pas être copié : les
+protocoles consolidés de la release vivent dans `releases/<abi>/consolidated`, et
+un second exemplaire à côté des plugins n'est qu'un piège.
 
 Deux contrôles au build, qui décident si le paquet `kelescope-core` doit être
 livré avec les autres :
@@ -189,7 +204,8 @@ redémarrage.
 2. `Application.stop/1` ;
 3. `Application.unload/1` puis `Application.load/1`, pour relire le `.app` sur
    disque — la liste des modules et les valeurs par défaut ont pu changer ;
-4. `:code.purge/1` sur les modules disparus de la nouvelle liste ;
+4. `:code.purge/1` puis `:code.delete/1` sur les modules disparus de la nouvelle
+   liste ;
 5. `:code.purge/1` puis `:code.load_file/1` sur chaque module de la nouvelle
    liste ;
 6. `Application.ensure_all_started/1`.
@@ -224,7 +240,8 @@ Aucun compilateur ne les vérifie seul. Les contrôles associés sont décrits p
 bas.
 
 1. **Aucun `defimpl` hors de `kelescope_core`.** La consolidation de protocoles
-   est globale et vit dans le paquet runtime.
+   est globale et vit dans le paquet runtime. Un type défini par une partie et
+   passé à un protocole consolidé lève `Protocol.UndefinedError`.
 2. **Tous les assets dans `kelescope_core`.** Tailwind produit un `app.css`
    unique en scannant les templates de toutes les applications. `phx.digest`
    produit un `cache_manifest.json` unique.
@@ -253,7 +270,7 @@ Le spec produit `kelescope`, `kelescope-runtime` et `kelescope-app`.
 
 Aucun découpage fonctionnel à ce stade. Une livraison passe de 7,6 Mo à environ
 250 Ko. C'est là que se prend l'essentiel du gain de poids, et c'est l'étape qui
-éprouve le mécanisme risqué avant tout refactoring.
+éprouve le mécanisme en conditions réelles avant tout refactoring.
 
 `docs/maintenance/paquet-rpm.md` est réécrit.
 
@@ -274,21 +291,31 @@ partie. Le spec gagne trois sous-paquets.
 C'est l'étape la plus lourde en refactoring, et celle dont le gain marginal est
 le plus faible une fois les deux premières livrées.
 
-## Vérifications préalables
+## Points établis
 
-À éprouver dans un jet jetable, avant de s'engager sur l'étape 1. Aucun de ces
-points n'est établi aujourd'hui.
+Éprouvés sur une release jetable, avec Erlang/OTP 26 et Elixir 1.18.3, en mode
+`embedded`. Chaque ligne cite ce qui a été observé.
 
-1. Un `primLoad` portant sur un module absent fait-il bien échouer le démarrage
-   du nœud ? C'est le mécanisme attendu, il n'est pas testé.
-2. Le chargeur atteint-il les protocoles consolidés depuis une application
-   installée hors de la release ? Le répertoire `releases/<abi>/consolidated`
-   est en tête du code path du boot script ; reste à confirmer qu'un module
-   chargé depuis `plugins/` s'y réfère correctement.
-3. `mix release` accepte-t-il de ne pas embarquer les applications de l'umbrella
-   qui ne sont pas dépendances de `kelescope_boot` ?
-4. `bin/kelescope rpc` fonctionne-t-il depuis un `%posttrans`, avec
-   `kelescope.env` sourcé ?
+| Point | Résultat |
+|---|---|
+| Un `primLoad` portant sur un module absent du disque | Le nœud ne démarre pas : `Runtime terminating during boot ({load_failed,['Elixir.Boot.Report']})`, code de sortie 1. |
+| Un module déposé dans un `ebin` de la release mais absent du `primLoad` | `UndefinedFunctionError` à l'appel. Le mode `embedded` ne charge rien à la demande. |
+| Une application non dépendante de l'application principale | Absente du `.rel` produit par `mix release`. |
+| Les protocoles consolidés, atteints depuis un module chargé de `plugins/` | Atteints. `:code.which(Jason.Encoder)` pointe vers `releases/<abi>/consolidated`, et `Jason.encode!/1` fonctionne depuis le plugin. |
+| Une struct définie par un plugin, passée à un protocole consolidé | `Protocol.UndefinedError`. C'est le fondement de l'invariant 1. |
+| Le chargement explicite des modules d'un plugin | Obligatoire. Sans lui, `ensure_all_started/1` échoue sur `{:bad_return, … {:EXIT, {:undef, [{PlugA.Application, :start, …}]}}}`. |
+| `Application.ensure_all_started/1` appelé depuis `start/2` | Blocage sans fin. Processus tué au bout de 45 s. |
+| La même séquence exécutée depuis un `handle_continue/2` | Fonctionne. Les plugins démarrent, leurs processus supervisés tournent. |
+| `reload/1` sur une partie modifiée, nœud en marche | Le nouveau code répond, un module ajouté est chargé, un module supprimé est purgé et devient introuvable, le processus supervisé redémarre. La durée de fonctionnement du nœud n'est pas remise à zéro : pas de redémarrage. |
+| Les trois branches de `kelescope-reload-plugin` | Nominale, service arrêté, et repli sur `try-restart` quand le nœud est injoignable : les trois se comportent comme prévu. |
+
+## Reste à éprouver
+
+- `bin/kelescope rpc` lancé depuis un vrai `%posttrans`, sur EL9, avec
+  `kelescope.env` sourcé. Le script a été éprouvé hors du contexte rpm
+  seulement.
+- La totalité de la chaîne avec Phoenix et LiveView. Le jet jetable ne portait
+  ni endpoint ni vue.
 
 ## Tests
 
@@ -305,7 +332,7 @@ points n'est établi aujourd'hui.
   déclarées par les parties n'est pas couvert par celles de `kelescope_boot`.
 - Suite existante : elle tourne depuis la racine de l'umbrella, sans
   régression.
-- Bout en bout, sur une machine EL9 : installer les six paquets, démarrer le
+- Bout en bout, sur une machine EL9 : installer les paquets, démarrer le
   service, atteindre `/`, `/domains` et `/mcu`.
 
 ## Critères d'acceptation
@@ -314,12 +341,12 @@ points n'est établi aujourd'hui.
    trois pages répondent.
 2. Deux builds qui ne diffèrent que par le code d'une partie produisent un
    `/opt/kelescope` identique hors `plugins/`.
-3. Mettre à jour `kelescope-mcu` seul, service en marche, recharge la partie
-   sans redémarrer le nœud. La durée de fonctionnement du nœud le prouve. `/mcu`
-   sert la nouvelle version, `/` et `/domains` ne sont pas interrompues.
+3. Mettre à jour une partie seule, service en marche, la recharge sans
+   redémarrer le nœud. La durée de fonctionnement du nœud le prouve. La page
+   concernée sert la nouvelle version, les autres ne sont pas interrompues.
 4. Retirer `kelescope-mcu` laisse `/` et `/domains` en service.
-5. `bin/kelescope rpc` affiche les quatre applications, leur ABI et leur version
-   produit.
+5. `bin/kelescope rpc` affiche les applications chargées, leur ABI et leur
+   version produit.
 6. Un plugin illisible ou incomplet fait échouer le démarrage avec un message
    nommant l'application. Aucun démarrage partiel silencieux.
 7. Le build signale que `kelescope-core` doit être livré dès que le condensat
@@ -349,6 +376,6 @@ points n'est établi aujourd'hui.
 - **La configuration reste dans le paquet runtime.** Une partie qui aurait
   besoin d'une clé de configuration compile-time nouvelle imposerait une
   livraison du runtime. L'invariant 5 l'interdit ; il faudra s'y tenir.
-- **Les quatre points de vérification préalable ne sont pas établis.** Si le
-  point 2 (protocoles consolidés) échoue, l'architecture est à revoir en
-  profondeur.
+- **Le comportement avec Phoenix et LiveView n'est pas éprouvé.** Le jet
+  jetable a validé le mécanisme sur des modules simples. L'étape 1 est le
+  premier test réel.
