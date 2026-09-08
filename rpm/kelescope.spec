@@ -13,7 +13,7 @@
 %global min_core 0.2.0
 
 Name:           kelescope
-Version:        0.2.0
+Version:        0.3.0
 Release:        1%{?dist}
 Summary:        Interface d'administration web pour kelixip
 
@@ -286,6 +286,9 @@ fi
 /opt/kelescope/plugins/kelescope_mcu-%{abi}
 
 %changelog
+* Tue Sep 08 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.3.0-1
+- Ecran MCU : saisie du DID a la creation d'un pont.
+
 * Tue Sep 08 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.2.0-1
 - Decoupage en six paquets : socle d'execution, socle applicatif et une page
   par paquet. Corriger une page ne reexpedie plus le runtime Erlang.
