@@ -20,6 +20,8 @@ defmodule Kelescope.Application do
            Application.fetch_env!(:kelescope, Kelescope.Kelixip.StatusPoller)},
           {Kelescope.Kelixip.DomainsLink,
            Application.fetch_env!(:kelescope, Kelescope.Kelixip.DomainsLink)},
+          {Kelescope.Kelixip.ConferencesPoller,
+           Application.fetch_env!(:kelescope, Kelescope.Kelixip.ConferencesPoller)},
           KelescopeWeb.Endpoint
         ]
 

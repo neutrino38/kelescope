@@ -132,4 +132,85 @@ defmodule Kelescope.Kelixip.Control do
       results when is_map(results) -> {:ok, results}
     end
   end
+
+  @doc """
+  Runs a module-contributed control command (`kelictl <module> <cmd> <args>`),
+  the generic entry point every loadable module (e.g. `"mcu"`) reaches through.
+  `args` is string-keyed, the shape `Kelix.Control.module_command/3` expects.
+  """
+  @spec module_command(node(), String.t(), String.t(), map()) ::
+          {:ok, term()} | {:error, term()}
+  def module_command(node, module, cmd, args) do
+    case :rpc.call(node, Kelix.Control, :module_command, [module, cmd, args]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc "Conferences known to the `mcu` module (`kelictl mcu conference.list`)."
+  @spec list_conferences(node(), map()) :: {:ok, [map()]} | {:error, term()}
+  def list_conferences(node, filters \\ %{}) do
+    module_command(node, "mcu", "conference.list", filters)
+  end
+
+  @doc "One conference and its participants (`kelictl mcu conference.show`)."
+  @spec conference(node(), String.t()) :: {:ok, map()} | {:error, :not_found | term()}
+  def conference(node, uid) do
+    module_command(node, "mcu", "conference.show", %{"uid" => uid})
+  end
+
+  @doc """
+  One participant, with the media server's own statistics for it — packets and
+  bytes sent/received per media (`kelictl mcu participant.show`). No codec is
+  reported: the media server arbitrates codecs and does not hand that choice back.
+  """
+  @spec participant(node(), String.t(), term()) :: {:ok, map()} | {:error, :not_found | term()}
+  def participant(node, uid, part_id) do
+    module_command(node, "mcu", "participant.show", %{"uid" => uid, "part_id" => part_id})
+  end
+
+  @doc """
+  Creates a conference (`kelictl mcu conference.create`). `admin` identifies who
+  requested it, traced in kelixip's own logs — it is not a conference field.
+  """
+  @spec create_conference(node(), map(), String.t()) :: {:ok, map()} | {:error, term()}
+  def create_conference(node, attrs, admin) do
+    module_command(node, "mcu", "conference.create", Map.put(attrs, "admin", admin))
+  end
+
+  @doc "Updates a conference's properties, merged over the current ones (`conference.update`)."
+  @spec update_conference(node(), String.t(), map()) ::
+          {:ok, map()} | {:error, :not_found | term()}
+  def update_conference(node, uid, attrs) do
+    module_command(node, "mcu", "conference.update", Map.put(attrs, "uid", uid))
+  end
+
+  @doc """
+  Destroys a conference (`kelictl mcu conference.delete`). `admin` identifies who
+  requested it, traced in kelixip's own logs. `force` disconnects the
+  participants first; without it, a non-empty conference errors `:not_empty`.
+  """
+  @spec delete_conference(node(), String.t(), String.t(), boolean()) ::
+          {:ok, term()} | {:error, :not_found | :not_empty | term()}
+  def delete_conference(node, uid, admin, force \\ false) do
+    module_command(node, "mcu", "conference.delete", %{
+      "uid" => uid,
+      "force" => force,
+      "admin" => admin
+    })
+  end
+
+  @doc "Starts recording a conference's mix (`kelictl mcu recording.start`)."
+  @spec start_recording(node(), String.t(), String.t() | nil) ::
+          {:ok, map()} | {:error, :not_found | :already_recording | term()}
+  def start_recording(node, uid, file \\ nil) do
+    module_command(node, "mcu", "recording.start", %{"uid" => uid, "file" => file})
+  end
+
+  @doc "Stops recording a conference's mix (`kelictl mcu recording.stop`)."
+  @spec stop_recording(node(), String.t()) ::
+          {:ok, map()} | {:error, :not_found | :not_recording | term()}
+  def stop_recording(node, uid) do
+    module_command(node, "mcu", "recording.stop", %{"uid" => uid})
+  end
 end

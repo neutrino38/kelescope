@@ -35,7 +35,7 @@ defmodule KelescopeWeb.CoreComponents do
   @doc """
   Top navigation between kelescope's pages.
   """
-  attr :current, :atom, required: true, values: [:monitor, :domains]
+  attr :current, :atom, required: true, values: [:monitor, :domains, :mcu]
   attr :locale, :string, default: "fr"
 
   def nav(assigns) do
@@ -47,6 +47,9 @@ defmodule KelescopeWeb.CoreComponents do
         </.link>
         <.link navigate={~p"/domains"} class={@current == :domains && "font-semibold"}>
           {gettext("Domaines")}
+        </.link>
+        <.link navigate={~p"/mcu"} class={@current == :mcu && "font-semibold"}>
+          MCU
         </.link>
       </div>
       <div class="flex items-center gap-3">
