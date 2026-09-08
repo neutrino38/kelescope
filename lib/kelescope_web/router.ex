@@ -34,7 +34,6 @@ defmodule KelescopeWeb.Router do
     live_session :default, on_mount: KelescopeWeb.LocaleHook do
       live "/", ScenarioMonitorLive
       live "/domains", DomainListLive
-      live "/domains/:name", DomainShowLive
     end
   end
 

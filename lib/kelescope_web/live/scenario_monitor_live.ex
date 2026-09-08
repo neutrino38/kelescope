@@ -163,6 +163,12 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   attr :mediaserver, :map, required: true
 
   defp mediaserver_modal(assigns) do
+    assigns =
+      assign(assigns,
+        addresses: mediaserver_addresses(assigns.mediaserver),
+        server_status: mediaserver_server_status(assigns.mediaserver)
+      )
+
     ~H"""
     <div
       id="mediaserver-modal"
@@ -170,7 +176,10 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
       phx-window-keydown="close_mediaserver"
       phx-key="escape"
     >
-      <div class="w-80 rounded bg-base-200 p-4 shadow-lg" phx-click-away="close_mediaserver">
+      <div
+        class="max-h-[85vh] w-96 overflow-y-auto rounded bg-base-200 p-4 shadow-lg"
+        phx-click-away="close_mediaserver"
+      >
         <div class="mb-3 flex items-center justify-between">
           <h2 class="text-sm font-semibold uppercase text-base-content/70">
             {gettext("Médiaserveur")}
@@ -190,6 +199,14 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
             <dd class="font-medium">{@mediaserver.name}</dd>
           </div>
           <div class="flex justify-between">
+            <dt class="text-base-content/70">{gettext("Module")}</dt>
+            <dd class="font-medium">{Map.get(@mediaserver, :module, "-")}</dd>
+          </div>
+          <div class="flex justify-between">
+            <dt class="text-base-content/70">{gettext("Adresse de contrôle")}</dt>
+            <dd class="font-medium">{Map.get(@mediaserver, :url, "-")}</dd>
+          </div>
+          <div class="flex justify-between">
             <dt class="text-base-content/70">{gettext("État")}</dt>
             <dd class="font-medium">
               {if @mediaserver.enabled, do: gettext("activé"), else: gettext("désactivé")}
@@ -202,6 +219,65 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
             </dd>
           </div>
         </dl>
+
+        <div class="mt-3">
+          <div class="text-xs uppercase text-base-content/70">{gettext("Adresses réseau")}</div>
+          <div :if={@addresses == []} class="mt-1 text-xs text-base-content/70">
+            {gettext("non disponibles")}
+          </div>
+          <dl :if={@addresses != []} class="mt-1 space-y-0.5 text-sm">
+            <div :for={{profile, addr, default?} <- @addresses} class="flex justify-between">
+              <dt class="text-base-content/70">
+                {profile}<span :if={default?}> ({gettext("défaut")})</span>
+              </dt>
+              <dd class="font-medium">{addr}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div :if={@server_status} class="mt-3">
+          <div class="text-xs uppercase text-base-content/70">{gettext("Serveur")}</div>
+          <dl class="mt-1 space-y-2 text-sm">
+            <div class="flex justify-between">
+              <dt class="text-base-content/70">{gettext("Version")}</dt>
+              <dd class="font-medium">{get_in(@server_status, ["server", "version"]) || "-"}</dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-base-content/70">Uptime</dt>
+              <dd class="font-medium">
+                {format_uptime((get_in(@server_status, ["server", "uptimeSecs"]) || 0) * 1000)}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-base-content/70">{gettext("Codecs audio")}</dt>
+              <dd class="font-medium">
+                {gettext("encodage")}: {string_list(@server_status, ~w(capabilities audio encode))}
+              </dd>
+              <dd class="font-medium">
+                {gettext("décodage")}: {string_list(@server_status, ~w(capabilities audio decode))}
+              </dd>
+            </div>
+            <div>
+              <dt class="text-base-content/70">{gettext("Codecs vidéo")}</dt>
+              <dd class="font-medium">
+                {gettext("encodage")}: {string_list(@server_status, ~w(capabilities video encode))}
+              </dd>
+              <dd class="font-medium">
+                {gettext("décodage")}: {string_list(@server_status, ~w(capabilities video decode))}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-base-content/70">{gettext("Sécurité")}</dt>
+              <dd class="font-medium">
+                {string_list(@server_status, ~w(security modes))}
+              </dd>
+            </div>
+            <div class="flex justify-between">
+              <dt class="text-base-content/70">{gettext("Conférences en cours")}</dt>
+              <dd class="font-medium">{get_in(@server_status, ["load", "conferences"]) || 0}</dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </div>
     """
@@ -309,6 +385,32 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   end
 
   defp scenario(scenarios, id), do: Map.get(scenarios, id, %{})
+
+  defp mediaserver_addresses(%{profiles: profiles}) when is_map(profiles) do
+    profiles
+    |> Enum.filter(fn {_profile, p} -> Map.get(p, :available) end)
+    |> Enum.map(fn {profile, p} ->
+      addr = presence(Map.get(p, :announced)) || presence(Map.get(p, :bind)) || "-"
+      {profile, addr, Map.get(p, :default, false)}
+    end)
+    |> Enum.sort_by(fn {profile, _addr, _default} -> profile end)
+  end
+
+  defp mediaserver_addresses(_mediaserver), do: []
+
+  defp presence(nil), do: nil
+  defp presence(""), do: nil
+  defp presence(value), do: value
+
+  defp mediaserver_server_status(%{server_status: status}) when is_map(status), do: status
+  defp mediaserver_server_status(_mediaserver), do: nil
+
+  defp string_list(status, path) do
+    case get_in(status, path) do
+      list when is_list(list) and list != [] -> Enum.join(list, ", ")
+      _other -> "-"
+    end
+  end
 
   defp auth_db_active?(status), do: :auth_db in Map.get(status, :modules, [])
 

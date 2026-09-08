@@ -58,6 +58,67 @@ defmodule Kelescope.Kelixip.Control do
   end
 
   @doc """
+  Subscribes `pid` to domain counter updates on `node`.
+
+  Returns the current snapshot (same shape as `list_domains/1`). `pid` then
+  receives `{:kelix_domain_counter, domain, :active_calls | :registrations,
+  count}` messages as either counter changes.
+  """
+  @spec subscribe_domain_counters(node(), pid()) :: {:ok, [map()]} | {:error, term()}
+  def subscribe_domain_counters(node, pid) do
+    case :rpc.call(node, Kelix.Control, :subscribe_domain_counters, [pid]) do
+      {:badrpc, reason} -> {:error, reason}
+      domains when is_list(domains) -> {:ok, domains}
+    end
+  end
+
+  @doc """
+  Subscribes `pid` to registration updates for `domain` (AORs and their
+  contacts). `domain` is matched against the domain name and its aliases,
+  case-insensitively; the reply's `:domain` key gives the canonical name.
+
+  Returns the current registrations for that domain. `pid` then receives
+  `{:kelix_registrations, domain, {:upsert, registration}}` and
+  `{:kelix_registrations, domain, {:remove, aor}}` messages (`domain` is the
+  canonical name) as registrations change.
+  """
+  @spec subscribe_registrations(node(), pid(), String.t()) ::
+          {:ok, %{domain: String.t(), registrations: [map()]}} | {:error, :not_found | term()}
+  def subscribe_registrations(node, pid, domain) do
+    case :rpc.call(node, Kelix.Control, :subscribe_registrations, [pid, domain]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc """
+  Removes (unregisters) one contact from an AOR (`kelictl registration remove
+  <domain> <aor> <uri>`). `admin` identifies who requested it, for kelixip's
+  own audit log.
+  """
+  @spec unregister(node(), String.t(), String.t(), String.t(), String.t()) ::
+          :ok | :notfound | {:error, term()}
+  def unregister(node, domain, aor, contact_uri, admin) do
+    case :rpc.call(node, Kelix.Control, :unregister, [domain, aor, contact_uri, admin]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc """
+  Gracefully shuts down one running scenario instance by `id` (`kelictl
+  scenario shutdown <id>`). `admin` identifies who requested it, for
+  kelixip's own audit log.
+  """
+  @spec shutdown_scenario(node(), term(), String.t()) :: :ok | {:error, :not_found | term()}
+  def shutdown_scenario(node, id, admin) do
+    case :rpc.call(node, Kelix.Control, :shutdown_scenario, [id, admin]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc """
   Reloads one or more scenario scripts by name (`kelictl reload-script
   <name…>`). Returns `%{name => :ok | {:error, reason}}`, one entry per name.
   """

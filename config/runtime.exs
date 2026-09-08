@@ -41,6 +41,10 @@ config :kelescope, Kelescope.Kelixip.StatusPoller,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")
 
+config :kelescope, Kelescope.Kelixip.DomainsLink,
+  node: (kelixip_node || to_string(node())) |> String.to_atom(),
+  cookie: System.get_env("KELIXIP_COOKIE")
+
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
   config :kelescope, KelescopeWeb.Endpoint,
