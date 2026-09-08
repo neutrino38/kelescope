@@ -65,10 +65,17 @@ Le répertoire des plugins vaut `<RELEASE_ROOT>/plugins`, surchargeable par
 Séquence de chargement, dans cet ordre :
 
 1. lister `plugins/*/ebin`, et `:code.add_pathz/1` sur chacun ;
-2. `Application.load/1` sur chaque application trouvée ;
+2. pour chaque application, mémoriser `Application.get_all_env/1`, puis
+   `Application.load/1` ;
 3. pour chaque application, charger explicitement les modules listés dans la
    clé `modules` de son fichier `.app`, par `:code.load_file/1` ;
 4. `Application.ensure_all_started/1` sur chaque application chargée.
+
+L'étape 2 mémorise la configuration avant le chargement. À ce moment, cette
+table ne contient que ce que `runtime.exs` a posé. `Application.load/1` conserve
+ces valeurs, mais `Application.unload/1` les efface. Sans cette mémorisation, un
+rechargement à chaud viderait la configuration issue de `runtime.exs` :
+`secret_key_base`, le port HTTPS, les chemins de certificat.
 
 L'étape 3 n'est pas une optimisation. Sans elle, l'étape 4 échoue sur un `undef`
 de `<Application>.start/2` : en mode `embedded`, rien ne se charge à la demande,
@@ -204,11 +211,13 @@ redémarrage.
 2. `Application.stop/1` ;
 3. `Application.unload/1` puis `Application.load/1`, pour relire le `.app` sur
    disque — la liste des modules et les valeurs par défaut ont pu changer ;
-4. `:code.purge/1` puis `:code.delete/1` sur les modules disparus de la nouvelle
+4. réappliquer les surcharges mémorisées à l'étape 2 du chargement, que
+   `Application.unload/1` vient d'effacer ;
+5. `:code.purge/1` puis `:code.delete/1` sur les modules disparus de la nouvelle
    liste ;
-5. `:code.purge/1` puis `:code.load_file/1` sur chaque module de la nouvelle
+6. `:code.purge/1` puis `:code.load_file/1` sur chaque module de la nouvelle
    liste ;
-6. `Application.ensure_all_started/1`.
+7. `Application.ensure_all_started/1`.
 
 Le `%posttrans` de chaque paquet de partie appelle ce script. `%posttrans`
 s'exécute une fois en fin de transaction : la mise à jour simultanée de
@@ -306,6 +315,8 @@ le plus faible une fois les deux premières livrées.
 | Le chargement explicite des modules d'un plugin | Obligatoire. Sans lui, `ensure_all_started/1` échoue sur `{:bad_return, … {:EXIT, {:undef, [{PlugA.Application, :start, …}]}}}`. |
 | `Application.ensure_all_started/1` appelé depuis `start/2` | Blocage sans fin. Processus tué au bout de 45 s. |
 | La même séquence exécutée depuis un `handle_continue/2` | Fonctionne. Les plugins démarrent, leurs processus supervisés tournent. |
+| `Application.load/1` sur une application dont la configuration est déjà posée | Les valeurs posées sont conservées. `runtime.exs` peut donc configurer une partie avant que le chargeur ne la charge. |
+| `Application.unload/1` | Vide la configuration de l'application. `reload/1` doit réappliquer les surcharges mémorisées, sinon la partie repart sans sa configuration. |
 | `reload/1` sur une partie modifiée, nœud en marche | Le nouveau code répond, un module ajouté est chargé, un module supprimé est purgé et devient introuvable, le processus supervisé redémarre. La durée de fonctionnement du nœud n'est pas remise à zéro : pas de redémarrage. |
 | Les trois branches de `kelescope-reload-plugin` | Nominale, service arrêté, et repli sur `try-restart` quand le nœud est injoignable : les trois se comportent comme prévu. |
 
