@@ -17,11 +17,11 @@ import Config
 # Alternatively, you can use `mix phx.gen.release` to generate a `bin/server`
 # script that automatically sets the env var above.
 if System.get_env("PHX_SERVER") do
-  config :kelescope, KelescopeWeb.Endpoint, server: true
+  config :kelescope_core, KelescopeWeb.Endpoint, server: true
 end
 
 unless config_env() == :prod do
-  config :kelescope, KelescopeWeb.Endpoint,
+  config :kelescope_core, KelescopeWeb.Endpoint,
     http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 end
 
@@ -31,27 +31,27 @@ end
 # (dev_support/kelix_control_stub.ex) — see docs/architecture/adr-001.
 kelixip_node = System.get_env("KELIXIP_NODE")
 
-config :kelescope, :kelixip_stub, is_nil(kelixip_node) and config_env() != :prod
+config :kelescope_core, :kelixip_stub, is_nil(kelixip_node) and config_env() != :prod
 
-config :kelescope, Kelescope.Kelixip.Link,
+config :kelescope_core, Kelescope.Kelixip.Link,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")
 
-config :kelescope, Kelescope.Kelixip.StatusPoller,
+config :kelescope_monitor, Kelescope.Kelixip.StatusPoller,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")
 
-config :kelescope, Kelescope.Kelixip.DomainsLink,
+config :kelescope_core, Kelescope.Kelixip.DomainsLink,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")
 
-config :kelescope, Kelescope.Kelixip.ConferencesPoller,
+config :kelescope_mcu, Kelescope.Kelixip.ConferencesPoller,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")
 
 if config_env() == :dev do
   # Reload browser tabs when matching files change.
-  config :kelescope, KelescopeWeb.Endpoint,
+  config :kelescope_core, KelescopeWeb.Endpoint,
     live_reload: [
       web_console_logger: true,
       patterns: [
@@ -60,8 +60,7 @@ if config_env() == :dev do
         # Gettext translations
         ~r"priv/gettext/.*\.po$",
         # Router, Controllers, LiveViews and LiveComponents
-        ~r"lib/kelescope_web/router\.ex$",
-        ~r"lib/kelescope_web/(controllers|live|components)/.*\.(ex|heex)$"
+        ~r"lib/kelescope_web/.*\.(ex|heex)$"
       ]
     ]
 end
@@ -82,7 +81,7 @@ if config_env() == :prod do
   host = System.get_env("PHX_HOST") || "example.com"
   https_port = String.to_integer(System.get_env("KELESCOPE_HTTPS_PORT", "8443"))
 
-  config :kelescope, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
+  config :kelescope_core, :dns_cluster_query, System.get_env("DNS_CLUSTER_QUERY")
 
   certfile =
     System.get_env("KELESCOPE_SSL_CERTFILE") ||
@@ -100,7 +99,7 @@ if config_env() == :prod do
       See docs/maintenance/paquet-rpm.md for details.
       """
 
-  config :kelescope, KelescopeWeb.Endpoint,
+  config :kelescope_core, KelescopeWeb.Endpoint,
     url: [host: host, port: https_port, scheme: "https"],
     https: [
       # Enable IPv6 and bind on all interfaces.

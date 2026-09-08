@@ -5,6 +5,7 @@ defmodule Kelescope.Umbrella.MixProject do
     [
       apps_path: "apps",
       start_permanent: Mix.env() == :prod,
+      listeners: [Phoenix.CodeReloader],
       aliases: aliases(),
       deps: [],
       releases: releases()
@@ -29,9 +30,9 @@ defmodule Kelescope.Umbrella.MixProject do
 
   defp aliases do
     [
-      setup: ["do --app kelescope setup"],
-      "assets.build": ["do --app kelescope assets.build"],
-      "assets.deploy": ["do --app kelescope assets.deploy"],
+      setup: ["do --app kelescope_core setup"],
+      "assets.build": ["do --app kelescope_core assets.build"],
+      "assets.deploy": ["do --app kelescope_core assets.deploy"],
       precommit: ["compile --warnings-as-errors", "deps.unlock --unused", "format", "test"]
     ]
   end

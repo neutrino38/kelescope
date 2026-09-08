@@ -7,11 +7,11 @@
 # General application configuration
 import Config
 
-config :kelescope,
+config :kelescope_core,
   generators: [timestamp_type: :utc_datetime]
 
 # Configure the endpoint
-config :kelescope, KelescopeWeb.Endpoint,
+config :kelescope_core, KelescopeWeb.Endpoint,
   url: [host: "localhost"],
   adapter: Bandit.PhoenixAdapter,
   render_errors: [
@@ -32,7 +32,7 @@ config :esbuild,
   kelescope: [
     args:
       ~w(js/app.js --bundle --target=es2022 --outdir=../priv/static/assets/js --external:/fonts/* --external:/images/* --alias:@=.),
-    cd: Path.expand("../apps/kelescope/assets", __DIR__),
+    cd: Path.expand("../apps/kelescope_core/assets", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 
@@ -44,7 +44,7 @@ config :tailwind,
       --input=assets/css/app.css
       --output=priv/static/assets/css/app.css
     ),
-    cd: Path.expand("../apps/kelescope", __DIR__),
+    cd: Path.expand("../apps/kelescope_core", __DIR__),
     env: %{"NODE_PATH" => [Path.expand("../deps", __DIR__), Mix.Project.build_path()]}
   ]
 

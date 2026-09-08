@@ -26,18 +26,18 @@ erl_crash.dump
 kelescope-*.tar
 
 # Ignore assets that are produced by build tools.
-/apps/kelescope/priv/static/assets/
+/apps/kelescope_core/priv/static/assets/
 
 # Ignore digested assets cache.
-/apps/kelescope/priv/static/cache_manifest.json
+/apps/kelescope_core/priv/static/cache_manifest.json
 
 # Copies digerees et compressees produites par `mix phx.digest`.
-/apps/kelescope/priv/static/**/*-????????????????????????????????.*
-/apps/kelescope/priv/static/**/*.gz
+/apps/kelescope_core/priv/static/**/*-????????????????????????????????.*
+/apps/kelescope_core/priv/static/**/*.gz
 
 # In case you use Node.js/npm, you want to ignore these.
 npm-debug.log
-/apps/kelescope/assets/node_modules/
+/apps/kelescope_core/assets/node_modules/
 
 # Scratch tree used by rpm/build.sh (SOURCES/BUILD/RPMS/...).
 /rpm/build/

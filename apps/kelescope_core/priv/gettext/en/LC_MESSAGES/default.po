@@ -1,0 +1,83 @@
+## "msgid"s in this file come from POT (.pot) files.
+###
+### Do not add, change, or remove "msgid"s manually here as
+### they're tied to the ones in the corresponding POT file
+### (with the same domain).
+###
+### Use "mix gettext.extract --merge" or "mix gettext.merge"
+### to merge POT files into PO files.
+msgid ""
+msgstr ""
+"Language: en\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: lib/kelescope_web/components/core_components.ex:435
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:534
+#, elixir-autogen, elixir-format
+msgid "Administrateur"
+msgstr "Administrator"
+
+#: lib/kelescope_web/components/core_components.ex:546
+#, elixir-autogen, elixir-format
+msgid "Annuler"
+msgstr "Cancel"
+
+#: lib/kelescope_web/components/layouts.ex:102
+#: lib/kelescope_web/components/layouts.ex:117
+#, elixir-autogen, elixir-format
+msgid "Attempting to reconnect"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:84
+#, elixir-autogen, elixir-format
+msgid "Augmenter la taille du texte"
+msgstr "Increase text size"
+
+#: lib/kelescope_web/components/core_components.ex:549
+#, elixir-autogen, elixir-format
+msgid "Confirmer"
+msgstr "Confirm"
+
+#: lib/kelescope_web/components/core_components.ex:49
+#, elixir-autogen, elixir-format
+msgid "Domaines"
+msgstr "Domains"
+
+#: lib/kelescope_web/components/core_components.ex:76
+#, elixir-autogen, elixir-format
+msgid "Réduire la taille du texte"
+msgstr "Decrease text size"
+
+#: lib/kelescope_web/components/core_components.ex:46
+#, elixir-autogen, elixir-format
+msgid "Scénarios"
+msgstr "Scenarios"
+
+#: lib/kelescope_web/components/layouts.ex:109
+#, elixir-autogen, elixir-format
+msgid "Something went wrong!"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:71
+#, elixir-autogen, elixir-format
+msgid "Taille du texte"
+msgstr "Text size"
+
+#: lib/kelescope_web/components/layouts.ex:94
+#, elixir-autogen, elixir-format
+msgid "We can't find the internet"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:141
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:542
+#, elixir-autogen, elixir-format
+msgid "votre nom"
+msgstr "your name"

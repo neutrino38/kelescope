@@ -2,7 +2,7 @@ import Config
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
-config :kelescope, KelescopeWeb.Endpoint,
+config :kelescope_core, KelescopeWeb.Endpoint,
   http: [ip: {127, 0, 0, 1}, port: 4002],
   secret_key_base: "x27QMwbikzWeLUBnStG6ioW6Ps9YMv3vsSeCxKcfS0skNKWOGQiGLIyJe2kvEqgo",
   server: false

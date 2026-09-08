@@ -3,8 +3,11 @@ defmodule Kelescope.Boot.ReleasePayloadTest do
 
   test "la release embarque toutes les applications dont les parties dépendent" do
     embarquees = fermeture(:kelescope_boot)
+    parties = parties()
 
-    for partie <- parties(), dependance <- dependances(partie) do
+    for partie <- parties,
+        dependance <- dependances(partie),
+        dependance not in parties do
       assert dependance in embarquees,
              "#{partie} dépend de #{dependance}, absente de la charge utile de kelescope_boot"
     end

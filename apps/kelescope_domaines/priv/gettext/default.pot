@@ -1,0 +1,114 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:259
+#, elixir-autogen, elixir-format
+msgid "%{count} enregistrements"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:253
+#, elixir-autogen, elixir-format
+msgid "%{count} sessions actives"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:318
+#, elixir-autogen, elixir-format
+msgid "(non activé)"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:212
+#, elixir-autogen, elixir-format
+msgid "Aucun domaine servi."
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:351
+#, elixir-autogen, elixir-format
+msgid "Aucun enregistrement."
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:196
+#, elixir-autogen, elixir-format
+msgid "Domaines"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:229
+#: lib/kelescope_web/domain_list_live.ex:372
+#, elixir-autogen, elixir-format
+msgid "Désenregistrer"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:219
+#, elixir-autogen, elixir-format
+msgid "Désenregistrer ce contact"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:340
+#, elixir-autogen, elixir-format
+msgid "Impossible de lire les enregistrements : %{reason}"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:198
+#, elixir-autogen, elixir-format
+msgid "Rafraîchir"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:303
+#, elixir-autogen, elixir-format
+msgid "Recharger les scénarios du domaine"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:231
+#, elixir-autogen, elixir-format
+msgid "contact"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:291
+#, elixir-autogen, elixir-format
+msgid "défaut"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:382
+#, elixir-autogen, elixir-format
+msgid "erreur : %{reason}"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:359
+#, elixir-autogen, elixir-format
+msgid "expire dans (s)"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:290
+#, elixir-autogen, elixir-format
+msgid "motif"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:325
+#, elixir-autogen, elixir-format
+msgid "non chargé"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:297
+#: lib/kelescope_web/domain_list_live.ex:327
+#, elixir-autogen, elixir-format
+msgid "obsolète"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:297
+#, elixir-autogen, elixir-format
+msgid "à jour"
+msgstr ""
+
+#: lib/kelescope_web/domain_list_live.ex:296
+#, elixir-autogen, elixir-format
+msgid "état"
+msgstr ""
