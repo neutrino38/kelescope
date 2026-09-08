@@ -31,7 +31,12 @@ defmodule Kelix.Control do
         enabled: true,
         healthy: true,
         profiles: %{
-          "publicv4" => %{available: true, announced: "203.0.113.9", bind: "10.0.0.5", default: true},
+          "publicv4" => %{
+            available: true,
+            announced: "203.0.113.9",
+            bind: "10.0.0.5",
+            default: true
+          },
           "publicv6" => %{available: false, announced: "", bind: "", default: false},
           "internalv4" => %{available: true, announced: "", bind: "10.0.0.5", default: false},
           "internalv6" => %{available: false, announced: "", bind: "", default: false}
@@ -39,7 +44,10 @@ defmodule Kelix.Control do
         server_status: %{
           "server" => %{"version" => "1.14.0", "uptimeSecs" => 274_353},
           "capabilities" => %{
-            "audio" => %{"encode" => ["opus", "pcma", "pcmu"], "decode" => ["opus", "pcma", "pcmu", "g722"]},
+            "audio" => %{
+              "encode" => ["opus", "pcma", "pcmu"],
+              "decode" => ["opus", "pcma", "pcmu", "g722"]
+            },
             "video" => %{"encode" => ["vp8", "h264"], "decode" => ["vp8", "h264"]}
           },
           "security" => %{"modes" => ["none", "sdes-srtp", "dtls-srtp"]},
@@ -179,6 +187,85 @@ defmodule Kelix.Control do
     ]
   }
 
+  # Two conferences dedicated to exercising the MCU screen, isolated from the
+  # example.com/test.local/throwaway.local fixtures other tests already use —
+  # same rationale as throwaway.local in phase 2. `layout.comp` wire ids follow
+  # Kelix.Mod.Mcu.Vocabulary.@mosaics (elixip): 1 = "2x2", 6 = "1+1".
+  @fake_conferences [
+    %{
+      uid: "c-standup",
+      name: "standup",
+      domain: "example.com",
+      did: "+33970260240",
+      mcu: "ms1",
+      conf_id: 101,
+      vad: 1,
+      rate: 32_000,
+      medias: [:audio, :video, :text],
+      dtmf: true,
+      video: %{size: 6, fps: 30, bitrate: 1500, intra_period: 300},
+      preferred_video_codec: "H264",
+      layout: %{comp: 1, size: 6, auto: true},
+      max_participants: 20,
+      destroy_when_empty: false,
+      persistent: true,
+      created_at: ~U[2026-09-01 09:00:00Z],
+      stale: false,
+      logo: nil,
+      recording: nil,
+      participants: [
+        %{
+          part_id: 1,
+          name: "alice",
+          from: "sip:alice@example.com",
+          state: :connected,
+          medias: [:audio, :video],
+          joined_at: ~U[2026-09-08 09:05:00Z]
+        },
+        %{
+          part_id: 2,
+          name: "bob",
+          from: "sip:bob@example.com",
+          state: :connected,
+          medias: [:audio],
+          joined_at: ~U[2026-09-08 09:06:00Z]
+        }
+      ]
+    },
+    %{
+      uid: "c-board",
+      name: "board-review",
+      domain: "example.com",
+      did: "+33970260241",
+      mcu: "ms2",
+      conf_id: 102,
+      vad: 1,
+      rate: 8000,
+      medias: [:audio, :video],
+      dtmf: true,
+      video: %{size: 2, fps: 25, bitrate: 512, intra_period: 300},
+      preferred_video_codec: nil,
+      layout: %{comp: 6, size: 2, auto: true},
+      max_participants: 10,
+      destroy_when_empty: true,
+      persistent: false,
+      created_at: ~U[2026-09-08 08:00:00Z],
+      stale: false,
+      logo: "acme-logo.png",
+      recording: %{file: "board-review-20260908.mp4", started_at: ~U[2026-09-08 08:10:00Z]},
+      participants: [
+        %{
+          part_id: 3,
+          name: "carol",
+          from: "sip:carol@example.com",
+          state: :connected,
+          medias: [:audio, :video],
+          joined_at: ~U[2026-09-08 08:01:00Z]
+        }
+      ]
+    }
+  ]
+
   @fake_rows [
     %{
       id: 1,
@@ -231,7 +318,8 @@ defmodule Kelix.Control do
         rows: @fake_rows,
         status: @fake_status,
         domains: @fake_domains,
-        registrations: @fake_registrations
+        registrations: @fake_registrations,
+        conferences: @fake_conferences
       },
       name: __MODULE__
     )
@@ -255,11 +343,16 @@ defmodule Kelix.Control do
     do: GenServer.call(__MODULE__, {:unregister, domain, aor, contact_uri, admin})
 
   @doc "Shuts down a running scenario instance; logged and pushed to monitor subscribers."
-  def shutdown_scenario(id, admin), do: GenServer.call(__MODULE__, {:shutdown_scenario, id, admin})
+  def shutdown_scenario(id, admin),
+    do: GenServer.call(__MODULE__, {:shutdown_scenario, id, admin})
 
   @doc "Reloads `names`; `fallback.exs` always fails, to exercise the error path."
   def reload_script(names, _notify? \\ false),
     do: GenServer.call(__MODULE__, {:reload_script, names})
+
+  @doc "Stand-in for `Kelix.Control.module_command/3` (`kelictl <module> <cmd> <args>`)."
+  def module_command(module, cmd, args),
+    do: GenServer.call(__MODULE__, {:module_command, module, cmd, args})
 
   @doc "Pushes `msg` to every scenario subscriber right away, bypassing the random tick (used by tests)."
   def push(msg), do: GenServer.cast(__MODULE__, {:push, msg})
@@ -271,7 +364,8 @@ defmodule Kelix.Control do
   def set_status(status), do: GenServer.cast(__MODULE__, {:set_status, status})
 
   @doc "Pushes a `{:kelix_registrations, domain, msg}` to that domain's subscribers (used by tests)."
-  def push_registration(domain, msg), do: GenServer.cast(__MODULE__, {:push_registration, domain, msg})
+  def push_registration(domain, msg),
+    do: GenServer.cast(__MODULE__, {:push_registration, domain, msg})
 
   @impl true
   def init(state) do
@@ -313,8 +407,12 @@ defmodule Kelix.Control do
 
       d ->
         regs = Map.get(state.registrations, d.name, [])
-        subs = Map.update(state.registration_subs, d.name, MapSet.new([pid]), &MapSet.put(&1, pid))
-        {:reply, {:ok, %{domain: d.name, registrations: regs}}, %{state | registration_subs: subs}}
+
+        subs =
+          Map.update(state.registration_subs, d.name, MapSet.new([pid]), &MapSet.put(&1, pid))
+
+        {:reply, {:ok, %{domain: d.name, registrations: regs}},
+         %{state | registration_subs: subs}}
     end
   end
 
@@ -378,6 +476,16 @@ defmodule Kelix.Control do
   end
 
   @impl true
+  def handle_call({:module_command, "mcu", cmd, args}, _from, state) do
+    {reply, state} = mcu_command(cmd, args, state)
+    {:reply, reply, state}
+  end
+
+  def handle_call({:module_command, _module, _cmd, _args}, _from, state) do
+    {:reply, {:error, :unknown_module}, state}
+  end
+
+  @impl true
   def handle_cast({:push, msg}, state) do
     for pid <- state.subs, do: send(pid, msg)
     {:noreply, state}
@@ -418,4 +526,316 @@ defmodule Kelix.Control do
       String.downcase(d.name) == down or down in Enum.map(d.aliases, &String.downcase/1)
     end)
   end
+
+  # ── mcu module_command dispatch ──────────────────────────────────────────
+  # Mirrors Kelix.Mod.Mcu.do_control/2 (elixip apps/kelix_modules), including its
+  # "admin" tracing on create/delete (see mcu.ex's do_control("conference.create"/
+  # "conference.delete", ...)).
+
+  defp mcu_command("conference.list", args, state) do
+    domain = Map.get(args, "domain")
+    did = Map.get(args, "did")
+
+    rows =
+      state.conferences
+      |> Enum.filter(&(is_nil(domain) or &1.domain == domain))
+      |> Enum.filter(&(is_nil(did) or &1.did == did))
+      |> Enum.map(&render_conference/1)
+
+    {{:ok, rows}, state}
+  end
+
+  defp mcu_command("conference.show", args, state) do
+    case find_conference(state, Map.get(args, "uid")) do
+      nil ->
+        {{:error, :not_found}, state}
+
+      conf ->
+        reply =
+          conf
+          |> render_conference()
+          |> Map.put(:participants, Enum.map(conf.participants, &render_participant/1))
+
+        {{:ok, reply}, state}
+    end
+  end
+
+  defp mcu_command("conference.create", args, state) do
+    admin = Map.get(args, "admin")
+
+    result =
+      case Map.get(args, "domain") do
+        nil ->
+          {:error, "domain is required"}
+
+        domain ->
+          video = video_from_args(args, %{size: 6, fps: 30, bitrate: 1500, intra_period: 300})
+
+          layout =
+            align_layout_size(layout_from_args(args, %{comp: 1, size: 6, auto: true}), video)
+
+          {:ok,
+           %{
+             uid: "c-" <> Integer.to_string(System.unique_integer([:positive])),
+             name: Map.get(args, "name") || "conf-#{length(state.conferences) + 1}",
+             domain: domain,
+             did: Map.get(args, "did") || "+339702602#{50 + length(state.conferences)}",
+             mcu: Map.get(args, "mcu") || "ms1",
+             conf_id: System.unique_integer([:positive, :monotonic]),
+             vad: Map.get(args, "vad") || 1,
+             rate: Map.get(args, "rate") || 32_000,
+             medias: medias_from_args(args) || [:audio, :video, :text],
+             dtmf: true,
+             video: video,
+             preferred_video_codec: preferred_video_codec_from_args(args, nil),
+             layout: layout,
+             max_participants: Map.get(args, "max_participants") || 20,
+             destroy_when_empty: Map.get(args, "destroy_when_empty") || false,
+             persistent: true,
+             created_at: DateTime.utc_now(),
+             stale: false,
+             logo: Map.get(args, "logo"),
+             recording: nil,
+             participants: []
+           }}
+      end
+
+    Logger.info(
+      "mcu conference.create domain=#{Map.get(args, "domain")} by admin=#{admin || "unknown"}: " <>
+        "#{inspect(result)}"
+    )
+
+    case result do
+      {:ok, conf} ->
+        {{:ok, %{uid: conf.uid, did: conf.did, conf_id: conf.conf_id, mcu: conf.mcu}},
+         %{state | conferences: state.conferences ++ [conf]}}
+
+      {:error, _reason} = error ->
+        {error, state}
+    end
+  end
+
+  defp mcu_command("conference.update", args, state) do
+    case find_conference(state, Map.get(args, "uid")) do
+      nil ->
+        {{:error, :not_found}, state}
+
+      conf ->
+        video = video_from_args(args, conf.video)
+        layout = align_layout_size(layout_from_args(args, conf.layout), video)
+
+        updated =
+          conf
+          |> maybe_put(:name, Map.get(args, "name"))
+          |> maybe_put(:max_participants, Map.get(args, "max_participants"))
+          |> maybe_put(:destroy_when_empty, Map.get(args, "destroy_when_empty"))
+          |> maybe_put(:vad, Map.get(args, "vad"))
+          |> maybe_put(:rate, Map.get(args, "rate"))
+          |> maybe_put(:medias, medias_from_args(args))
+          |> maybe_put(:logo, Map.get(args, "logo"))
+          |> Map.put(:layout, layout)
+          |> Map.put(:video, video)
+          |> Map.put(
+            :preferred_video_codec,
+            preferred_video_codec_from_args(args, conf.preferred_video_codec)
+          )
+
+        {{:ok, render_conference(updated)},
+         %{state | conferences: replace_conference(state.conferences, updated)}}
+    end
+  end
+
+  defp mcu_command("conference.delete", args, state) do
+    uid = Map.get(args, "uid")
+    admin = Map.get(args, "admin")
+    force = Map.get(args, "force", false)
+
+    result =
+      case find_conference(state, uid) do
+        nil -> {:error, :not_found}
+        %{participants: []} -> :ok
+        _conf when force -> :ok
+        _conf -> {:error, :not_empty}
+      end
+
+    Logger.info(
+      "mcu conference.delete uid=#{uid} by admin=#{admin || "unknown"}: #{inspect(result)}"
+    )
+
+    case result do
+      :ok ->
+        {{:ok, %{}}, %{state | conferences: Enum.reject(state.conferences, &(&1.uid == uid))}}
+
+      error ->
+        {error, state}
+    end
+  end
+
+  defp mcu_command("recording.start", args, state) do
+    uid = Map.get(args, "uid")
+
+    case find_conference(state, uid) do
+      nil ->
+        {{:error, :not_found}, state}
+
+      %{recording: recording} when not is_nil(recording) ->
+        {{:error, :already_recording}, state}
+
+      conf ->
+        file =
+          Map.get(args, "file") ||
+            "#{conf.uid}-#{DateTime.to_unix(DateTime.utc_now())}.mp4"
+
+        updated = %{conf | recording: %{file: file, started_at: DateTime.utc_now()}}
+
+        {{:ok, %{uid: uid, file: file, path: file, mcu: conf.mcu}},
+         %{state | conferences: replace_conference(state.conferences, updated)}}
+    end
+  end
+
+  defp mcu_command("recording.stop", args, state) do
+    uid = Map.get(args, "uid")
+
+    case find_conference(state, uid) do
+      nil ->
+        {{:error, :not_found}, state}
+
+      %{recording: nil} ->
+        {{:error, :not_recording}, state}
+
+      conf ->
+        updated = %{conf | recording: nil}
+
+        {{:ok, %{uid: uid, file: conf.recording.file}},
+         %{state | conferences: replace_conference(state.conferences, updated)}}
+    end
+  end
+
+  defp mcu_command("participant.show", args, state) do
+    with conf when not is_nil(conf) <- find_conference(state, Map.get(args, "uid")),
+         part when not is_nil(part) <- find_participant(conf, Map.get(args, "part_id")) do
+      reply = Map.put(render_participant(part), :stats, fake_statistics(part))
+      {{:ok, reply}, state}
+    else
+      _ -> {{:error, :not_found}, state}
+    end
+  end
+
+  defp mcu_command(_cmd, _args, state), do: {{:error, :unknown_command}, state}
+
+  defp find_conference(state, uid), do: Enum.find(state.conferences, &(&1.uid == uid))
+
+  defp find_participant(conf, part_id) do
+    Enum.find(conf.participants, &(&1.part_id == coerce_part_id(part_id)))
+  end
+
+  defp coerce_part_id(id) when is_integer(id), do: id
+  defp coerce_part_id(id) when is_binary(id), do: String.to_integer(id)
+
+  defp replace_conference(conferences, updated),
+    do: Enum.map(conferences, &if(&1.uid == updated.uid, do: updated, else: &1))
+
+  defp render_conference(conf) do
+    conf
+    |> Map.put(:participants, length(conf.participants))
+    |> Map.update!(:recording, &(&1 && &1.file))
+  end
+
+  defp render_participant(p),
+    do: Map.take(p, [:part_id, :name, :from, :state, :medias, :joined_at])
+
+  defp maybe_put(map, _key, nil), do: map
+  defp maybe_put(map, key, value), do: Map.put(map, key, value)
+
+  defp layout_from_args(args, default) do
+    case Map.get(args, "layout") do
+      nil ->
+        default
+
+      given ->
+        default
+        |> maybe_put_layout_field(given, "comp", :comp)
+        |> maybe_put_layout_field(given, "auto", :auto)
+    end
+  end
+
+  defp maybe_put_layout_field(layout, given, string_key, atom_key) do
+    case Map.get(given, string_key) do
+      nil -> layout
+      value -> Map.put(layout, atom_key, value)
+    end
+  end
+
+  # The mosaic canvas is the encoded picture: naming a `video.size` moves the
+  # layout's canvas size with it, same invariant as elixip's `align_sizes/4`
+  # (`Kelix.Mod.Mcu`) — kelescope only ever names the size through `video`.
+  defp align_layout_size(layout, video), do: %{layout | size: video.size}
+
+  # `video` is merged field-by-field over the current values, like `layout` —
+  # naming just `size` leaves `fps`/`bitrate`/`intra_period` untouched.
+  defp video_from_args(args, default) do
+    case Map.get(args, "video") do
+      nil ->
+        default
+
+      given ->
+        default
+        |> maybe_put_video_field(given, "size", :size)
+        |> maybe_put_video_field(given, "fps", :fps)
+        |> maybe_put_video_field(given, "bitrate", :bitrate)
+        |> maybe_put_video_field(given, "intra_period", :intra_period)
+    end
+  end
+
+  defp maybe_put_video_field(video, given, string_key, atom_key) do
+    case Map.get(given, string_key) do
+      nil -> video
+      value -> Map.put(video, atom_key, value)
+    end
+  end
+
+  # Absent key: keep the current preference. Present, even "": an explicit choice —
+  # "" (the form's "aucune préférence" option) clears it, same as the real
+  # `Vocabulary.video_codec/2` treating "" and "none" alike.
+  defp preferred_video_codec_from_args(args, current) do
+    case Map.fetch(args, "preferred_video_codec") do
+      :error -> current
+      {:ok, v} when v in [nil, ""] -> nil
+      {:ok, v} -> v
+    end
+  end
+
+  # `nil` when absent — kelescope never sends an empty list (mirrors elixip
+  # refusing "a conference that answers nothing"), so `maybe_put`/`||` above
+  # read absence as "leave as configured", never as "clear the medias".
+  defp medias_from_args(args) do
+    case Map.get(args, "medias") do
+      nil -> nil
+      names -> Enum.map(names, &String.to_existing_atom/1)
+    end
+  end
+
+  # Deterministic-looking fake numbers (from `part_id`), one entry per media the
+  # participant carries — same shape as `Kelix.Mod.Mcu.decode_statistics/1` (elixip).
+  defp fake_statistics(part) do
+    for media <- part.medias, into: %{} do
+      base = part.part_id * 1000 + media_offset(media)
+
+      {media,
+       %{
+         receiving: true,
+         sending: true,
+         lost_recv_packets: rem(base, 5),
+         num_recv_packets: base + 40_000,
+         num_send_packets: base + 38_000,
+         total_recv_bytes: (base + 40_000) * 200,
+         total_send_bytes: (base + 38_000) * 200
+       }}
+    end
+  end
+
+  defp media_offset(:audio), do: 1
+  defp media_offset(:video), do: 2
+  defp media_offset(:text), do: 3
+  defp media_offset(_), do: 0
 end
