@@ -10,7 +10,7 @@
 # Versions minimales entre paquets. A relever a la main quand une partie
 # commence a employer une nouveaute du socle.
 %global min_runtime 0.2.0
-%global min_app 0.2.0
+%global min_core 0.2.0
 
 Name:           kelescope
 Version:        0.2.0
@@ -25,15 +25,18 @@ BuildRequires:  erlang >= 26
 BuildRequires:  systemd-rpm-macros
 
 Requires:       kelescope-runtime >= %{min_runtime}
-Requires:       kelescope-app >= %{min_app}
+Requires:       kelescope-core >= %{min_core}
+Requires:       kelescope-monitor >= %{min_core}
+Requires:       kelescope-domaines >= %{min_core}
+Requires:       kelescope-mcu >= %{min_core}
 
 %description
 kelescope est l'interface d'administration web du serveur d'application
-kelixip. Ce paquet n'installe aucun fichier : il tire le socle
-(kelescope-runtime) et l'application (kelescope-app).
+kelixip. Ce paquet n'installe aucun fichier : il tire le socle et les trois
+pages.
 
-Les deux se mettent a jour separement. Une correction de l'application ne
-reexpedie pas le runtime Erlang.
+Chaque partie se met a jour separement. Corriger une page ne reexpedie ni le
+runtime Erlang, ni les autres pages.
 
 %package runtime
 Summary:        Socle d'execution de kelescope (runtime Erlang, service systemd)
@@ -48,24 +51,63 @@ dependances, script de demarrage et service systemd qui expose kelescope en
 HTTPS sur le port 8443.
 
 Ce paquet ne contient aucun code de kelescope. Il charge au demarrage les
-applications presentes dans /opt/kelescope/plugins, fournies par
-kelescope-app.
+applications presentes dans /opt/kelescope/plugins.
 
 La compilation necessite un acces reseau (hex.pm pour les dependances,
 GitHub pour les binaires autonomes esbuild/tailwind). Voir
 docs/maintenance/paquet-rpm.md pour les details et pour la mise en place
 des certificats TLS.
 
-%package app
-Summary:        Application kelescope (interface web)
-Requires:         kelescope-runtime >= %{min_runtime}
+%package core
+Summary:        Socle applicatif : endpoint, routeur, composants, assets, liens kelixip
+Requires:       kelescope-runtime >= %{min_runtime}
 Requires(posttrans): systemd
 Requires(postun):    systemd
 
-%description app
-Code de l'interface web de kelescope, installe dans
-/opt/kelescope/plugins. Ne contient ni runtime Erlang ni dependances : il
-s'appuie sur celles de kelescope-runtime.
+%description core
+Socle applicatif : endpoint, routeur, composants, assets, liens kelixip.
+
+Installe dans /opt/kelescope/plugins/kelescope_core-%{abi}. Ne contient ni runtime
+Erlang ni dependances.
+
+%package monitor
+Summary:        Page de supervision des scenarios (/)
+Requires:       kelescope-runtime >= %{min_runtime}
+Requires:       kelescope-core >= %{min_core}
+Requires(posttrans): systemd
+Requires(postun):    systemd
+
+%description monitor
+Page de supervision des scenarios (/).
+
+Installe dans /opt/kelescope/plugins/kelescope_monitor-%{abi}. Ne contient ni runtime
+Erlang ni dependances.
+
+%package domaines
+Summary:        Page des domaines (/domains)
+Requires:       kelescope-runtime >= %{min_runtime}
+Requires:       kelescope-core >= %{min_core}
+Requires(posttrans): systemd
+Requires(postun):    systemd
+
+%description domaines
+Page des domaines (/domains).
+
+Installe dans /opt/kelescope/plugins/kelescope_domaines-%{abi}. Ne contient ni runtime
+Erlang ni dependances.
+
+%package mcu
+Summary:        Page MCU (/mcu)
+Requires:       kelescope-runtime >= %{min_runtime}
+Requires:       kelescope-core >= %{min_core}
+Requires(posttrans): systemd
+Requires(postun):    systemd
+
+%description mcu
+Page MCU (/mcu).
+
+Installe dans /opt/kelescope/plugins/kelescope_mcu-%{abi}. Ne contient ni runtime
+Erlang ni dependances.
 
 %prep
 %autosetup
@@ -97,9 +139,13 @@ install -d %{buildroot}/opt/kelescope
 cp -a _build/prod/rel/kelescope/. %{buildroot}/opt/kelescope/
 
 # priv est un lien symbolique dans _build : -L le deroule.
-install -d %{buildroot}/opt/kelescope/plugins/kelescope-%{abi}
-cp -aL _build/prod/lib/kelescope/ebin _build/prod/lib/kelescope/priv \
-    %{buildroot}/opt/kelescope/plugins/kelescope-%{abi}/
+for app in kelescope_core kelescope_monitor kelescope_domaines kelescope_mcu; do
+    install -d %{buildroot}/opt/kelescope/plugins/${app}-%{abi}
+    cp -aL _build/prod/lib/${app}/ebin %{buildroot}/opt/kelescope/plugins/${app}-%{abi}/
+    if [ -e _build/prod/lib/${app}/priv ]; then
+        cp -aL _build/prod/lib/${app}/priv %{buildroot}/opt/kelescope/plugins/${app}-%{abi}/
+    fi
+done
 
 install -Dm755 rpm/kelescope-reload-plugin %{buildroot}/opt/kelescope/bin/kelescope-reload-plugin
 
@@ -178,10 +224,34 @@ fi
 %postun runtime
 %systemd_postun_with_restart kelescope.service
 
-%posttrans app
-/opt/kelescope/bin/kelescope-reload-plugin kelescope || :
+%posttrans core
+/opt/kelescope/bin/kelescope-reload-plugin kelescope_core || :
 
-%postun app
+%postun core
+if [ "$1" -eq 0 ]; then
+    systemctl try-restart kelescope >/dev/null 2>&1 || :
+fi
+
+%posttrans monitor
+/opt/kelescope/bin/kelescope-reload-plugin kelescope_monitor || :
+
+%postun monitor
+if [ "$1" -eq 0 ]; then
+    systemctl try-restart kelescope >/dev/null 2>&1 || :
+fi
+
+%posttrans domaines
+/opt/kelescope/bin/kelescope-reload-plugin kelescope_domaines || :
+
+%postun domaines
+if [ "$1" -eq 0 ]; then
+    systemctl try-restart kelescope >/dev/null 2>&1 || :
+fi
+
+%posttrans mcu
+/opt/kelescope/bin/kelescope-reload-plugin kelescope_mcu || :
+
+%postun mcu
 if [ "$1" -eq 0 ]; then
     systemctl try-restart kelescope >/dev/null 2>&1 || :
 fi
@@ -199,14 +269,27 @@ fi
 %{_unitdir}/kelescope.service
 %attr(0640,root,kelixip) %config(noreplace) %{_sysconfdir}/kelescope/kelescope.env
 
-%files app
+%files core
 %defattr(-,root,root,-)
-/opt/kelescope/plugins/kelescope-%{abi}
+/opt/kelescope/plugins/kelescope_core-%{abi}
+
+%files monitor
+%defattr(-,root,root,-)
+/opt/kelescope/plugins/kelescope_monitor-%{abi}
+
+%files domaines
+%defattr(-,root,root,-)
+/opt/kelescope/plugins/kelescope_domaines-%{abi}
+
+%files mcu
+%defattr(-,root,root,-)
+/opt/kelescope/plugins/kelescope_mcu-%{abi}
 
 %changelog
 * Tue Sep 08 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.2.0-1
-- Decoupage en kelescope-runtime et kelescope-app : une correction de
-  l'interface web ne reexpedie plus le runtime Erlang.
+- Decoupage en six paquets : socle d'execution, socle applicatif et une page
+  par paquet. Corriger une page ne reexpedie plus le runtime Erlang.
+- Rechargement a chaud d'une partie a la mise a jour, sans couper le service.
 - Ecran MCU (/mcu), vue des domaines et compteurs en direct.
 
 * Tue Aug 25 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.1.1-1

@@ -1,7 +1,9 @@
 # ADR-002 : Découpage du paquet RPM en socle et applications chargées
 
 ## Statut
-Accepté
+Accepté. L'invariant sur les traductions est amendé par
+[ADR-003](adr-003-backend-gettext-par-partie.md) : chaque partie porte son
+propre backend Gettext et son propre catalogue.
 
 ## Contexte
 
@@ -56,7 +58,7 @@ indépendamment du reste.
   Aucun module du projet ne fait de `defimpl` aujourd'hui.
 - Tailwind produit un `app.css` unique en scannant tous les templates.
   `phx.digest` produit un `cache_manifest.json` unique.
-- Le backend `KelescopeWeb.Gettext` compile les traductions du projet entier.
+- Un backend Gettext compile les traductions qu'il sert.
 - `sys.config` et `runtime.exs` portent la configuration de toutes les parties.
 - `Kelescope.Application` démarre les quatre processus kelixip.
 - Le routeur ne dépend pas des modules qu'il route. `live "/mcu", McuLive` ne
@@ -76,9 +78,9 @@ Quatre applications, alignées sur les frontières déjà présentes dans le cod
 
 | Application | Contenu |
 |---|---|
-| `kelescope_core` | Endpoint, Router, Layouts, CoreComponents, Gettext, Telemetry, Error\*, Locale\*, `Kelixip.Link`, tous les assets |
+| `kelescope_core` | Endpoint, Router, Layouts, CoreComponents, Gettext, Telemetry, Error\*, Locale\*, `Kelixip.Link`, `Kelixip.DomainsLink`, tous les assets |
 | `kelescope_monitor` | `ScenarioMonitorLive`, `StatusPoller` |
-| `kelescope_domaines` | `DomainListLive`, `DomainsLink` |
+| `kelescope_domaines` | `DomainListLive` |
 | `kelescope_mcu` | `McuLive`, `ConferencesPoller` |
 
 Les versions OTP de ces applications sont **figées**. Elles valent un numéro
@@ -131,10 +133,9 @@ davantage les sessions LiveView qu'un redémarrage.
   diagnostic en production devient impossible.
 - Aucune partie hors du socle ne peut définir de `defimpl`. La consolidation de
   protocoles vit dans le paquet runtime.
-- Les assets, les traductions et les routes restent dans le socle. Un changement
-  de style, un texte traduisible nouveau ou une route nouvelle impose donc une
-  livraison du socle. Un changement de logique ou de rendu dans une page
-  existante n'en impose pas.
+- Les assets et les routes restent dans le socle. Un changement de style ou une
+  route nouvelle impose donc une livraison du socle. Un changement de logique,
+  de rendu ou de texte dans une page existante n'en impose pas.
 - Une classe utilitaire employée par une partie mais absente du CSS du socle ne
   produit aucune erreur. Elle produit un affichage faux. Ce risque est le plus
   discret du lot.

@@ -1,18 +1,22 @@
 # Paquets RPM
 
-kelescope est livré en trois paquets.
+kelescope est livré en six paquets.
 
 | Paquet | Contenu | Taille |
 |---|---|---|
-| `kelescope` | Méta-paquet. Aucun fichier. Il tire les deux autres. | 7 Ko |
-| `kelescope-runtime` | Le socle : runtime Erlang, dépendances, script de démarrage, service systemd, fichier de configuration. | 7,4 Mo |
-| `kelescope-app` | L'interface web elle-même : les `.beam` du projet, les assets et les traductions. | 447 Ko |
+| `kelescope` | Méta-paquet. Aucun fichier. Il tire les cinq autres. | 7 Ko |
+| `kelescope-runtime` | Le socle d'exécution : runtime Erlang, dépendances, script de démarrage, service systemd, fichier de configuration. | 7,4 Mo |
+| `kelescope-core` | Le socle applicatif : endpoint, routeur, composants, assets, liens kelixip. | 336 Ko |
+| `kelescope-monitor` | La page de supervision des scénarios (`/`). | 63 Ko |
+| `kelescope-domaines` | La page des domaines (`/domains`). | 58 Ko |
+| `kelescope-mcu` | La page MCU (`/mcu`). | 96 Ko |
 
-Le socle ne contient aucun code de kelescope. Corriger l'interface web
-n'expédie donc que 447 Ko, au lieu des 7,6 Mo d'un paquet unique.
+Corriger la page MCU n'expédie donc que 96 Ko, au lieu des 7,6 Mo d'un paquet
+unique.
 
-Décision et conception :
+Décisions et conception :
 [ADR-002](../architecture/adr-002-decoupage-paquets-rpm.md),
+[ADR-003](../architecture/adr-003-backend-gettext-par-partie.md),
 [SPEC](../conception/decoupage-rpm/SPEC.md).
 
 ## Arborescence installée
@@ -24,16 +28,19 @@ Décision et conception :
 ├── releases/           │
 ├── bin/kelescope       ┘
 └── plugins/
-    └── kelescope-1.0.0/{ebin,priv}   ─ kelescope-app
+    ├── kelescope_core-1.0.0/      ─ kelescope-core
+    ├── kelescope_monitor-1.0.0/   ─ kelescope-monitor
+    ├── kelescope_domaines-1.0.0/  ─ kelescope-domaines
+    └── kelescope_mcu-1.0.0/       ─ kelescope-mcu
 ```
 
-Le socle démarre un chargeur. Au démarrage, ce chargeur monte toutes les
-applications présentes dans `/opt/kelescope/plugins`, puis les lance.
+Le socle d'exécution démarre un chargeur. Au démarrage, ce chargeur monte toutes
+les applications présentes dans `/opt/kelescope/plugins`, puis les lance.
 
 `1.0.0` est un numéro d'ABI, c'est-à-dire le contrat interne entre le socle et
-l'application. Il est figé : il ne suit pas la version produit, qui vit dans le
+les pages. Il est figé : il ne suit pas la version produit, qui vit dans le
 champ `Version` du RPM. Ne pas le confondre avec la version affichée par
-`rpm -q kelescope-app`.
+`rpm -q kelescope-mcu`.
 
 ## Construire les paquets
 
@@ -191,10 +198,10 @@ Au démarrage, le chargeur écrit dans le journal la liste des applications
 qu'il a montées :
 
 ```
-[info] kelescope: applications chargées [:kelescope]
+[info] kelescope: applications chargées [:kelescope_core, :kelescope_domaines, :kelescope_mcu, :kelescope_monitor]
 ```
 
-Cette ligne absente, ou une liste vide, signale que `kelescope-app` n'est pas
+Une application absente de cette liste signale que son paquet n'est pas
 installé.
 
 Le service écrit ses journaux sur la sortie standard, capturée par
@@ -206,7 +213,8 @@ Symptômes fréquents dans `journalctl -u kelescope` :
 |---|---|
 | `failed_to_start_child,net_kernel,{'EXIT',nodistribution}` | `RELEASE_DISTRIBUTION=name` absent, voir la table des variables. |
 | `Runtime terminating during boot` (sans autre détail) | Le plus souvent `KELESCOPE_SSL_CERTFILE`/`KELESCOPE_SSL_KEYFILE` illisible par `kelixip`, voir la section certificats. |
-| `plugin kelescope : module … illisible` | Le paquet `kelescope-app` est incomplet ou corrompu. Le nœud refuse de démarrer plutôt que de tourner amputé. Réinstaller le paquet. |
+| `plugin kelescope_… : module … illisible` | Le paquet de cette partie est incomplet ou corrompu. Le nœud refuse de démarrer plutôt que de tourner amputé. Réinstaller le paquet. |
+| Une page répond 500, les autres répondent | Le paquet de cette page n'est pas installé. La route vit dans `kelescope-core`, la vue dans son propre paquet. |
 | `cookie store expects conn.secret_key_base to be at least 64 bytes` | `SECRET_KEY_BASE` fait moins de 64 caractères (souvent un caractère perdu au copier-coller). |
 | `kelixip link to <nœud>: :connect_failed` | À corréler avec `journalctl -u kelixip` sur l'autre hôte. `Invalid challenge reply` : `KELIXIP_COOKIE` ne correspond pas au cookie du nœud kelixip. Pas de message de rejet côté kelixip : vérifier le réseau (EPMD 4369/tcp et port de distribution BEAM, voir ADR-001) et que `KELIXIP_NODE` correspond exactement au nom et à l'adresse du nœud kelixip (`ps -eo cmd | grep beam.smp` sur l'hôte kelixip donne son `-name` et son `-setcookie` réels). |
 
@@ -218,10 +226,10 @@ Mise à jour complète :
 dnf upgrade ./kelescope-*.rpm
 ```
 
-Mise à jour de la seule interface web, quand le socle n'a pas changé :
+Mise à jour d'une seule page, quand le socle n'a pas changé :
 
 ```
-dnf upgrade ./kelescope-app-<version>-1.el9.x86_64.rpm
+dnf upgrade ./kelescope-mcu-<version>-1.el9.x86_64.rpm
 ```
 
 Le service n'est pas redémarré. En fin de transaction, rpm appelle
@@ -236,9 +244,14 @@ Trois cas, tous sûrs :
   `systemctl try-restart kelescope` et l'écrit sur la sortie d'erreur ;
 - rechargement réussi : le script affiche la liste des modules chargés.
 
-Un onglet déjà ouvert sur une page rechargée se remonte tout seul : le
+Un onglet déjà ouvert sur la page rechargée se remonte tout seul : le
 processus LiveView qui exécutait l'ancien code est tué, et le navigateur se
-reconnecte. Les autres onglets ne bougent pas.
+reconnecte. Les onglets ouverts sur les autres pages ne bougent pas.
+
+Attention au style : `app.css` et `app.js` sont uniques et vivent dans
+`kelescope-core`. Une page dont le style change doit être livrée **avec**
+`kelescope-core`, sinon la classe manquante ne produit aucune erreur, juste un
+affichage faux.
 
 ## Savoir ce qui tourne
 
@@ -252,22 +265,33 @@ un socle et une application de versions différentes.
 ```
 %{
   kelescope_boot: %{build: "0.2.0-1.el9", abi: "1.0.0"},
-  kelescope: %{build: "0.2.0-1.el9", abi: "1.0.0"}
+  kelescope_core: %{build: "0.2.0-1.el9", abi: "1.0.0"},
+  kelescope_monitor: %{build: "0.2.0-1.el9", abi: "1.0.0"},
+  kelescope_domaines: %{build: "0.2.0-1.el9", abi: "1.0.0"},
+  kelescope_mcu: %{build: "0.2.0-1.el9", abi: "1.0.0"}
 }
 ```
 
 `build` est la version produit, celle du RPM. `abi` est le numéro de contrat
 interne, figé.
 
-Le paquet `kelescope-app` déclare `Requires: kelescope-runtime >= <version
-minimale>`. Cette borne est tenue à la main dans `rpm/kelescope.spec` : elle est
-relevée quand l'interface web commence à employer une nouveauté du socle. Un
-socle plus récent que l'application est toujours accepté.
+Chaque page déclare `Requires: kelescope-core >= <version minimale>` et
+`Requires: kelescope-runtime >= <version minimale>`. Ces bornes sont tenues à la
+main dans `rpm/kelescope.spec` : elles sont relevées quand une page commence à
+employer une nouveauté du socle. Un socle plus récent qu'une page est toujours
+accepté.
 
-Désinstallation :
+Retirer une page laisse les autres en service :
 
 ```
-dnf remove kelescope kelescope-app kelescope-runtime
+dnf remove kelescope-mcu
+```
+
+Désinstallation complète :
+
+```
+dnf remove kelescope kelescope-core kelescope-monitor kelescope-domaines \
+    kelescope-mcu kelescope-runtime
 ```
 
 La désinstallation arrête et désactive le service, mais laisse en place
