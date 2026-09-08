@@ -36,12 +36,54 @@ defmodule KelescopeWeb.CoreComponents do
   Top navigation between kelescope's pages.
   """
   attr :current, :atom, required: true, values: [:monitor, :domains]
+  attr :locale, :string, default: "fr"
 
   def nav(assigns) do
     ~H"""
-    <nav class="flex gap-4 border-b p-2 text-sm">
-      <.link navigate={~p"/"} class={@current == :monitor && "font-semibold"}>Scénarios</.link>
-      <.link navigate={~p"/domains"} class={@current == :domains && "font-semibold"}>Domaines</.link>
+    <nav class="flex items-center justify-between gap-4 border-b p-2 text-sm">
+      <div class="flex gap-4">
+        <.link navigate={~p"/"} class={@current == :monitor && "font-semibold"}>
+          {gettext("Scénarios")}
+        </.link>
+        <.link navigate={~p"/domains"} class={@current == :domains && "font-semibold"}>
+          {gettext("Domaines")}
+        </.link>
+      </div>
+      <div class="flex items-center gap-3">
+        <div class="flex items-center gap-1 text-xs uppercase">
+          <.link
+            href={~p"/locale/fr"}
+            class={["px-1", @locale == "fr" && "font-semibold underline"]}
+          >
+            FR
+          </.link>
+          <.link
+            href={~p"/locale/en"}
+            class={["px-1", @locale == "en" && "font-semibold underline"]}
+          >
+            EN
+          </.link>
+        </div>
+        <div class="flex items-center gap-1">
+          <span class="text-xs uppercase text-base-content/70">{gettext("Taille du texte")}</span>
+          <button
+            type="button"
+            onclick="window.kelescopeBumpFont(-1)"
+            class="btn btn-xs btn-square"
+            aria-label={gettext("Réduire la taille du texte")}
+          >
+            A-
+          </button>
+          <button
+            type="button"
+            onclick="window.kelescopeBumpFont(1)"
+            class="btn btn-xs btn-square"
+            aria-label={gettext("Augmenter la taille du texte")}
+          >
+            A+
+          </button>
+        </div>
+      </div>
     </nav>
     """
   end
@@ -437,6 +479,75 @@ defmodule KelescopeWeb.CoreComponents do
         </div>
       </li>
     </ul>
+    """
+  end
+
+  @doc """
+  Renders a popup asking for confirmation plus an administrator name before
+  running a sensitive action, so the action can be traced back to a person in
+  the kelixip logs. `confirm_values` become hidden fields resubmitted with
+  the admin name on `confirm_event`.
+
+  ## Examples
+
+      <.admin_confirm_modal
+        :if={@pending_shutdown}
+        id="shutdown-modal"
+        title="Arrêter ce scénario"
+        confirm_event="confirm_shutdown"
+        cancel_event="cancel_shutdown"
+        confirm_values={%{"id" => @pending_shutdown}}
+        confirm_label="Arrêter"
+      >
+        Cette action interrompt le scénario en cours.
+      </.admin_confirm_modal>
+  """
+  attr :id, :string, required: true
+  attr :title, :string, required: true
+  attr :confirm_event, :string, required: true
+  attr :cancel_event, :string, required: true
+  attr :confirm_values, :map, default: %{}
+  attr :confirm_label, :string, default: nil
+  slot :inner_block
+
+  def admin_confirm_modal(assigns) do
+    ~H"""
+    <div
+      id={@id}
+      class="fixed inset-0 z-50 flex items-center justify-center bg-black/40"
+      phx-window-keydown={@cancel_event}
+      phx-key="escape"
+    >
+      <form
+        id={"#{@id}-form"}
+        phx-submit={@confirm_event}
+        phx-click-away={@cancel_event}
+        class="w-96 rounded bg-base-200 p-4 shadow-lg"
+      >
+        <h2 class="mb-3 text-sm font-semibold uppercase text-base-content/70">{@title}</h2>
+        <div class="mb-3 text-sm">{render_slot(@inner_block)}</div>
+        <input :for={{k, v} <- @confirm_values} type="hidden" name={k} value={v} />
+        <label for={"#{@id}-admin"} class="mb-1 block text-xs uppercase text-base-content/70">
+          {gettext("Administrateur")}
+        </label>
+        <input
+          id={"#{@id}-admin"}
+          type="text"
+          name="admin"
+          required
+          class="mb-3 w-full input input-sm"
+          placeholder={gettext("votre nom")}
+        />
+        <div class="flex justify-end gap-2">
+          <button type="button" phx-click={@cancel_event} class="btn btn-sm">
+            {gettext("Annuler")}
+          </button>
+          <button type="submit" class="btn btn-sm btn-error">
+            {@confirm_label || gettext("Confirmer")}
+          </button>
+        </div>
+      </form>
+    </div>
     """
   end
 

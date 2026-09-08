@@ -47,6 +47,10 @@ kelescope IS kelixip_liveview.
 
 Then visit [`localhost:4000`](http://localhost:4000).
 
+## Testing
+
+* Run `mix test` to run the test suite
+
 ## Deploying
 
 RPM packaging (self-contained release under `/opt/kelescope`, systemd
