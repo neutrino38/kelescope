@@ -36,6 +36,29 @@
         });
       })();
     </script>
+    <script>
+      (() => {
+        // Réglage de la taille du texte : mêmes bornes que trix-web-client
+        // (src/ui/prefs.ts, bumpFont/applyPrefs), en rem via la taille de
+        // <html>, pour que tout le reste (Tailwind) suive proportionnellement.
+        const FONT_KEY = "kelescope:font-size";
+        const FONT_MIN = 13;
+        const FONT_MAX = 20;
+        const FONT_DEFAULT = 16;
+
+        const storedFont = Number(localStorage.getItem(FONT_KEY));
+        if (storedFont >= FONT_MIN && storedFont <= FONT_MAX) {
+          document.documentElement.style.fontSize = `${storedFont}px`;
+        }
+
+        window.kelescopeBumpFont = (delta) => {
+          const current = Number(localStorage.getItem(FONT_KEY)) || FONT_DEFAULT;
+          const next = Math.min(FONT_MAX, Math.max(FONT_MIN, current + delta));
+          document.documentElement.style.fontSize = `${next}px`;
+          localStorage.setItem(FONT_KEY, String(next));
+        };
+      })();
+    </script>
   </head>
   <body>
     {@inner_content}
