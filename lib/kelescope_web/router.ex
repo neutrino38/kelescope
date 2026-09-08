@@ -1,6 +1,8 @@
 defmodule KelescopeWeb.Router do
   use KelescopeWeb, :router
 
+  @locales ~w(fr en)
+
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -8,18 +10,32 @@ defmodule KelescopeWeb.Router do
     plug :put_root_layout, html: {KelescopeWeb.Layouts, :root}
     plug :protect_from_forgery
     plug :put_secure_browser_headers
+    plug :put_locale
   end
 
   pipeline :api do
     plug :accepts, ["json"]
   end
 
+  defp put_locale(conn, _opts) do
+    locale = Plug.Conn.get_session(conn, :locale) |> normalize_locale()
+    Gettext.put_locale(KelescopeWeb.Gettext, locale)
+    Plug.Conn.assign(conn, :locale, locale)
+  end
+
+  defp normalize_locale(locale) when locale in @locales, do: locale
+  defp normalize_locale(_locale), do: "fr"
+
   scope "/", KelescopeWeb do
     pipe_through :browser
 
-    live "/", ScenarioMonitorLive
-    live "/domains", DomainListLive
-    live "/domains/:name", DomainShowLive
+    get "/locale/:locale", LocaleController, :update
+
+    live_session :default, on_mount: KelescopeWeb.LocaleHook do
+      live "/", ScenarioMonitorLive
+      live "/domains", DomainListLive
+      live "/domains/:name", DomainShowLive
+    end
   end
 
   # Other scopes may use custom stacks.
