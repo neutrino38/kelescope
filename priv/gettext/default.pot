@@ -1,0 +1,390 @@
+## This file is a PO Template file.
+##
+## "msgid"s here are often extracted from source code.
+## Add new messages manually only if they're dynamic
+## messages that can't be statically extracted.
+##
+## Run "mix gettext.extract" to bring this file up to
+## date. Leave "msgstr"s empty as changing them here has no
+## effect: edit them in PO (.po) files instead.
+#
+msgid ""
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:260
+#, elixir-autogen, elixir-format
+msgid "%{count} enregistrements"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:254
+#, elixir-autogen, elixir-format
+msgid "%{count} sessions actives"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:347
+#, elixir-autogen, elixir-format
+msgid "(aucun)"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:319
+#, elixir-autogen, elixir-format
+msgid "(non activé)"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:370
+#, elixir-autogen, elixir-format
+msgid "(vide)"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:432
+#, elixir-autogen, elixir-format
+msgid "Actions"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:531
+#, elixir-autogen, elixir-format
+msgid "Administrateur"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:543
+#, elixir-autogen, elixir-format
+msgid "Annuler"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:135
+#: lib/kelescope_web/live/scenario_monitor_live.ex:149
+#, elixir-autogen, elixir-format
+msgid "Arrêter"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:145
+#, elixir-autogen, elixir-format
+msgid "Arrêter le scénario #%{id}"
+msgstr ""
+
+#: lib/kelescope_web/components/layouts.ex:102
+#: lib/kelescope_web/components/layouts.ex:117
+#, elixir-autogen, elixir-format
+msgid "Attempting to reconnect"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:212
+#, elixir-autogen, elixir-format
+msgid "Aucun domaine servi."
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:352
+#, elixir-autogen, elixir-format
+msgid "Aucun enregistrement."
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:81
+#, elixir-autogen, elixir-format
+msgid "Augmenter la taille du texte"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:155
+#, elixir-autogen, elixir-format
+msgid "Cette action interrompt le scénario en cours."
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:151
+#, elixir-autogen, elixir-format
+msgid "Compte"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:546
+#, elixir-autogen, elixir-format
+msgid "Confirmer"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:320
+#, elixir-autogen, elixir-format
+msgid "Connexion BDD"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:105
+#, elixir-autogen, elixir-format
+msgid "Domaine"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:49
+#: lib/kelescope_web/live/domain_list_live.ex:196
+#, elixir-autogen, elixir-format
+msgid "Domaines"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:229
+#: lib/kelescope_web/live/domain_list_live.ex:373
+#, elixir-autogen, elixir-format
+msgid "Désenregistrer"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:219
+#, elixir-autogen, elixir-format
+msgid "Désenregistrer ce contact"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:191
+#, elixir-autogen, elixir-format
+msgid "Fermer"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:341
+#, elixir-autogen, elixir-format
+msgid "Impossible de lire les enregistrements : %{reason}"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:376
+#, elixir-autogen, elixir-format
+msgid "Modules"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:185
+#, elixir-autogen, elixir-format
+msgid "Médiaserveur"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:198
+#, elixir-autogen, elixir-format
+msgid "Nom"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:304
+#, elixir-autogen, elixir-format
+msgid "Nœud"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:353
+#, elixir-autogen, elixir-format
+msgid "Pool médias"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:198
+#, elixir-autogen, elixir-format
+msgid "Rafraîchir"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:304
+#, elixir-autogen, elixir-format
+msgid "Recharger les scénarios du domaine"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:73
+#, elixir-autogen, elixir-format
+msgid "Réduire la taille du texte"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:216
+#, elixir-autogen, elixir-format
+msgid "Santé"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:46
+#, elixir-autogen, elixir-format
+msgid "Scénarios"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:312
+#, elixir-autogen, elixir-format
+msgid "Sessions actives"
+msgstr ""
+
+#: lib/kelescope_web/components/layouts.ex:109
+#, elixir-autogen, elixir-format
+msgid "Something went wrong!"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:68
+#, elixir-autogen, elixir-format
+msgid "Taille du texte"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:107
+#, elixir-autogen, elixir-format
+msgid "Tous"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:316
+#, elixir-autogen, elixir-format
+msgid "Version domaines"
+msgstr ""
+
+#: lib/kelescope_web/components/layouts.ex:94
+#, elixir-autogen, elixir-format
+msgid "We can't find the internet"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:122
+#, elixir-autogen, elixir-format
+msgid "actions"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:212
+#, elixir-autogen, elixir-format
+msgid "activé"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:138
+#, elixir-autogen, elixir-format
+msgid "close"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:327
+#, elixir-autogen, elixir-format
+msgid "connectée"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:232
+#, elixir-autogen, elixir-format
+msgid "contact"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:153
+#, elixir-autogen, elixir-format
+msgid "domaine"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:327
+#, elixir-autogen, elixir-format
+msgid "déconnectée"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:292
+#: lib/kelescope_web/live/scenario_monitor_live.ex:231
+#, elixir-autogen, elixir-format
+msgid "défaut"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:212
+#, elixir-autogen, elixir-format
+msgid "désactivé"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:218
+#, elixir-autogen, elixir-format
+msgid "en défaut"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:383
+#, elixir-autogen, elixir-format
+msgid "erreur : %{reason}"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:360
+#, elixir-autogen, elixir-format
+msgid "expire dans (s)"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:291
+#, elixir-autogen, elixir-format
+msgid "kelixip status: en attente du premier relevé…"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:291
+#, elixir-autogen, elixir-format
+msgid "motif"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:326
+#, elixir-autogen, elixir-format
+msgid "non chargé"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:298
+#: lib/kelescope_web/live/domain_list_live.ex:328
+#, elixir-autogen, elixir-format
+msgid "obsolète"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:218
+#, elixir-autogen, elixir-format
+msgid "opérationnel"
+msgstr ""
+
+#: lib/kelescope_web/components/core_components.ex:539
+#, elixir-autogen, elixir-format
+msgid "votre nom"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:334
+#, elixir-autogen, elixir-format
+msgid "Écouteurs"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:210
+#, elixir-autogen, elixir-format
+msgid "État"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:298
+#, elixir-autogen, elixir-format
+msgid "à jour"
+msgstr ""
+
+#: lib/kelescope_web/live/domain_list_live.ex:297
+#, elixir-autogen, elixir-format
+msgid "état"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:206
+#, elixir-autogen, elixir-format
+msgid "Adresse de contrôle"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:224
+#, elixir-autogen, elixir-format
+msgid "Adresses réseau"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:252
+#, elixir-autogen, elixir-format
+msgid "Codecs audio"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:261
+#, elixir-autogen, elixir-format
+msgid "Codecs vidéo"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:276
+#, elixir-autogen, elixir-format
+msgid "Conférences en cours"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:202
+#, elixir-autogen, elixir-format
+msgid "Module"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:239
+#, elixir-autogen, elixir-format
+msgid "Serveur"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:270
+#, elixir-autogen, elixir-format
+msgid "Sécurité"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:242
+#, elixir-autogen, elixir-format
+msgid "Version"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:257
+#: lib/kelescope_web/live/scenario_monitor_live.ex:266
+#, elixir-autogen, elixir-format
+msgid "décodage"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:254
+#: lib/kelescope_web/live/scenario_monitor_live.ex:263
+#, elixir-autogen, elixir-format
+msgid "encodage"
+msgstr ""
+
+#: lib/kelescope_web/live/scenario_monitor_live.ex:226
+#, elixir-autogen, elixir-format
+msgid "non disponibles"
+msgstr ""
