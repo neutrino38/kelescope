@@ -228,8 +228,7 @@ defmodule KelescopeWeb.DomainListLive do
         }
         confirm_label={gettext("Désenregistrer")}
       >
-        AOR <strong>{@pending_removal.aor}</strong>,
-        {gettext("contact")} <strong>{@pending_removal.uri}</strong>.
+        AOR <strong>{@pending_removal.aor}</strong>, {gettext("contact")} <strong>{@pending_removal.uri}</strong>.
       </.admin_confirm_modal>
     </div>
     """

@@ -149,10 +149,12 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
         confirm_label={gettext("Arrêter")}
       >
         {gettext("Compte")}
-        <strong>{Map.get(scenario(@scenarios, @pending_shutdown), :account, "-")}</strong>,
-        {gettext("domaine")}
-        <strong>{Map.get(scenario(@scenarios, @pending_shutdown), :domain, "-")}</strong>.
-        {gettext("Cette action interrompt le scénario en cours.")}
+        <strong>{Map.get(scenario(@scenarios, @pending_shutdown), :account, "-")}</strong>, {gettext(
+          "domaine"
+        )}
+        <strong>{Map.get(scenario(@scenarios, @pending_shutdown), :domain, "-")}</strong>. {gettext(
+          "Cette action interrompt le scénario en cours."
+        )}
       </.admin_confirm_modal>
 
       <.mediaserver_modal :if={@selected_mediaserver} mediaserver={@selected_mediaserver} />

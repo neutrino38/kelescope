@@ -64,6 +64,7 @@ defmodule KelescopeWeb.McuLive do
        detail: nil,
        form_mode: nil,
        form_error: nil,
+       form_params: %{},
        pending_create: nil,
        pending_delete: nil,
        error: nil,
@@ -89,15 +90,25 @@ defmodule KelescopeWeb.McuLive do
   end
 
   def handle_event("new_conference", _params, socket) do
-    {:noreply, assign(socket, form_mode: :create, form_error: nil)}
+    {:noreply, assign(socket, form_mode: :create, form_error: nil, form_params: form_params(nil))}
   end
 
   def handle_event("edit_conference", %{"uid" => uid}, socket) do
-    {:noreply, assign(socket, form_mode: {:edit, uid}, form_error: nil)}
+    conf = edit_conf({:edit, uid}, socket.assigns.detail)
+
+    {:noreply,
+     assign(socket, form_mode: {:edit, uid}, form_error: nil, form_params: form_params(conf))}
   end
 
   def handle_event("cancel_form", _params, socket) do
     {:noreply, assign(socket, form_mode: nil, form_error: nil)}
+  end
+
+  # A section hidden by its media checkbox keeps its values here, so re-checking
+  # the media restores what the user had typed rather than the defaults.
+  def handle_event("form_changed", params, socket) do
+    merged = Map.merge(socket.assigns.form_params, Map.delete(params, "_target"))
+    {:noreply, assign(socket, :form_params, merged)}
   end
 
   def handle_event("submit_conference_form", params, socket) do
@@ -216,6 +227,48 @@ defmodule KelescopeWeb.McuLive do
   defp edit_conf({:edit, _uid}, {:ok, conf}), do: conf
   defp edit_conf(_mode, _detail), do: nil
 
+  # The form's own state, string-keyed exactly like the params `phx-change` sends
+  # back, so re-rendering the modal (a media checkbox showing or hiding a
+  # section) keeps what the user typed instead of falling back to the defaults.
+  defp form_params(nil) do
+    %{
+      "domain" => "",
+      "name" => "",
+      "max_participants" => "20",
+      "destroy_when_empty" => "false",
+      "media_audio" => "true",
+      "media_video" => "true",
+      "media_text" => "true",
+      "rate" => "32000",
+      "vad" => "1",
+      "video_size" => "6",
+      "video_bitrate" => "1500",
+      "preferred_video_codec" => "",
+      "layout_comp" => "1",
+      "layout_auto" => "true",
+      "logo" => ""
+    }
+  end
+
+  defp form_params(conf) do
+    %{
+      "name" => conf.name || "",
+      "max_participants" => to_string(conf.max_participants),
+      "destroy_when_empty" => to_string(conf.destroy_when_empty),
+      "media_audio" => to_string(:audio in conf.medias),
+      "media_video" => to_string(:video in conf.medias),
+      "media_text" => to_string(:text in conf.medias),
+      "rate" => to_string(conf.rate),
+      "vad" => to_string(conf.vad),
+      "video_size" => to_string(conf.video.size),
+      "video_bitrate" => to_string(conf.video.bitrate),
+      "preferred_video_codec" => conf.preferred_video_codec || "",
+      "layout_comp" => to_string(conf.layout.comp),
+      "layout_auto" => to_string(conf.layout.auto),
+      "logo" => conf.logo || ""
+    }
+  end
+
   # Flat form params (create step 1, or an edit submit) -> the string-keyed attrs
   # Kelescope.Kelixip.Control.create_conference/3 and update_conference/3 expect.
   defp form_attrs(params) do
@@ -230,7 +283,16 @@ defmodule KelescopeWeb.McuLive do
     |> Map.put("destroy_when_empty", Map.get(params, "destroy_when_empty") == "true")
     |> maybe_put_layout(params)
     |> maybe_put_video(params)
-    |> Map.put("preferred_video_codec", Map.get(params, "preferred_video_codec", ""))
+    |> maybe_put_string_or_empty(params, "preferred_video_codec")
+  end
+
+  # "" is a value here — the form's "aucune préférence", which clears the
+  # preference. Only an absent key (video section hidden) leaves it alone.
+  defp maybe_put_string_or_empty(attrs, params, key) do
+    case Map.fetch(params, key) do
+      :error -> attrs
+      {:ok, v} -> Map.put(attrs, key, v)
+    end
   end
 
   defp maybe_put_string(attrs, params, key) do
@@ -258,12 +320,18 @@ defmodule KelescopeWeb.McuLive do
     if medias == [], do: attrs, else: Map.put(attrs, "medias", medias)
   end
 
+  # No `layout_*` at all means the mosaic section was hidden (video unchecked):
+  # kelescope then omits `layout`, and elixip keeps the configured one.
   defp maybe_put_layout(attrs, params) do
-    layout =
-      %{"auto" => Map.get(params, "layout_auto") == "true"}
-      |> maybe_put_layout_comp(params)
+    if Map.has_key?(params, "layout_auto") or Map.has_key?(params, "layout_comp") do
+      layout =
+        %{"auto" => Map.get(params, "layout_auto") == "true"}
+        |> maybe_put_layout_comp(params)
 
-    Map.put(attrs, "layout", layout)
+      Map.put(attrs, "layout", layout)
+    else
+      attrs
+    end
   end
 
   defp maybe_put_layout_comp(layout, params) do
@@ -340,7 +408,7 @@ defmodule KelescopeWeb.McuLive do
     <.conference_form_modal
       :if={@form_mode}
       mode={@form_mode}
-      conf={edit_conf(@form_mode, @detail)}
+      params={@form_params}
       layouts={@layouts}
       video_sizes={@video_sizes}
       video_codecs={@video_codecs}
@@ -458,7 +526,7 @@ defmodule KelescopeWeb.McuLive do
           <dd>{vad_mode_name(@full.vad)}</dd>
           <dt class="text-base-content/70">{gettext("Bascule automatique de mosaïque")}</dt>
           <dd>{if @full.layout.auto, do: gettext("oui"), else: gettext("non")}</dd>
-          <dt class="text-base-content/70">{gettext("Fréquence audio")}</dt>
+          <dt class="text-base-content/70">{gettext("Fréquence de mixage")}</dt>
           <dd>{gettext("%{khz} kHz", khz: div(@full.rate, 1000))}</dd>
           <dt class="text-base-content/70">{gettext("Médias")}</dt>
           <dd>{Enum.map_join(@full.medias, ", ", &to_string/1)}</dd>
@@ -559,8 +627,22 @@ defmodule KelescopeWeb.McuLive do
     """
   end
 
+  attr :title, :string, required: true
+  slot :inner_block, required: true
+
+  defp form_section(assigns) do
+    ~H"""
+    <section class="mb-4">
+      <h3 class="mb-2 border-b pb-1 text-xs font-semibold uppercase text-base-content/70">
+        {@title}
+      </h3>
+      {render_slot(@inner_block)}
+    </section>
+    """
+  end
+
   attr :mode, :any, required: true
-  attr :conf, :map, default: nil
+  attr :params, :map, required: true
   attr :layouts, :list, required: true
   attr :video_sizes, :list, required: true
   attr :video_codecs, :list, required: true
@@ -576,7 +658,9 @@ defmodule KelescopeWeb.McuLive do
       phx-key="escape"
     >
       <form
+        id="conference-form"
         phx-submit="submit_conference_form"
+        phx-change="form_changed"
         phx-click-away="cancel_form"
         class="max-h-[85vh] w-[44rem] max-w-[95vw] overflow-y-auto rounded bg-base-200 p-4 shadow-lg"
       >
@@ -586,81 +670,25 @@ defmodule KelescopeWeb.McuLive do
             else: gettext("Propriétés de la conférence")}
         </h2>
 
-        <div class="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
-          <div>
+        <.form_section title={gettext("Paramètres généraux")}>
+          <div class="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
             <.input
               :if={@mode == :create}
               type="select"
               name="domain"
               label={gettext("Domaine")}
               options={@domain_names}
-              value=""
+              value={@params["domain"]}
               prompt={gettext("Choisir un domaine")}
               required
             />
-            <.input type="text" name="name" label={gettext("Nom")} value={@conf && @conf.name} />
+            <.input type="text" name="name" label={gettext("Nom")} value={@params["name"]} />
             <.input
               type="number"
               name="max_participants"
               label={gettext("Participants max")}
-              value={(@conf && @conf.max_participants) || 20}
+              value={@params["max_participants"]}
               min="1"
-            />
-            <.input
-              type="select"
-              name="vad"
-              label={gettext("Mode VAD")}
-              options={Enum.map(@vad_modes, &{&1.name, &1.id})}
-              value={(@conf && @conf.vad) || 1}
-            />
-            <.input
-              type="select"
-              name="rate"
-              label={gettext("Fréquence audio")}
-              options={[
-                {"8 kHz", 8000},
-                {"16 kHz", 16_000},
-                {"32 kHz", 32_000},
-                {"48 kHz", 48_000}
-              ]}
-              value={(@conf && @conf.rate) || 32_000}
-            />
-            <.input
-              type="checkbox"
-              name="destroy_when_empty"
-              label={gettext("Détruire quand vide")}
-              checked={@conf != nil and @conf.destroy_when_empty}
-            />
-          </div>
-
-          <div>
-            <.input
-              type="select"
-              name="video_size"
-              label={gettext("Résolution vidéo")}
-              options={Enum.map(@video_sizes, &{&1.name, &1.id})}
-              value={(@conf && @conf.video.size) || 6}
-            />
-            <.input
-              type="number"
-              name="video_bitrate"
-              label={gettext("Débit vidéo (kb/s)")}
-              value={(@conf && @conf.video.bitrate) || 1500}
-              min="1"
-            />
-            <.input
-              type="select"
-              name="preferred_video_codec"
-              label={gettext("Codec vidéo préféré")}
-              options={[{gettext("aucune préférence"), ""} | Enum.map(@video_codecs, &{&1, &1})]}
-              value={(@conf && @conf.preferred_video_codec) || ""}
-            />
-            <.input
-              type="text"
-              name="logo"
-              label="Logo"
-              value={@conf && @conf.logo}
-              placeholder={gettext("nom de fichier sur le média serveur")}
             />
             <div class="fieldset mb-2">
               <span class="label mb-1">{gettext("Médias")}</span>
@@ -669,33 +697,105 @@ defmodule KelescopeWeb.McuLive do
                   type="checkbox"
                   name="media_audio"
                   label="audio"
-                  checked={@conf == nil or :audio in @conf.medias}
+                  checked={@params["media_audio"] == "true"}
                 />
                 <.input
                   type="checkbox"
                   name="media_video"
                   label="video"
-                  checked={@conf == nil or :video in @conf.medias}
+                  checked={@params["media_video"] == "true"}
                 />
                 <.input
                   type="checkbox"
                   name="media_text"
                   label="text"
-                  checked={@conf == nil or :text in @conf.medias}
+                  checked={@params["media_text"] == "true"}
                 />
               </div>
             </div>
+            <.input
+              type="checkbox"
+              name="destroy_when_empty"
+              label={gettext("Détruire quand vide")}
+              checked={@params["destroy_when_empty"] == "true"}
+            />
           </div>
-        </div>
+        </.form_section>
 
-        <.layout_picker layouts={@layouts} selected={(@conf && @conf.layout.comp) || 1} />
+        <.form_section
+          :if={@params["media_audio"] == "true"}
+          title={gettext("Paramètres audio")}
+        >
+          <div class="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+            <.input
+              type="select"
+              name="rate"
+              label={gettext("Fréquence de mixage")}
+              options={[
+                {"8 kHz", "8000"},
+                {"16 kHz", "16000"},
+                {"32 kHz", "32000"},
+                {"48 kHz", "48000"}
+              ]}
+              value={@params["rate"]}
+            />
+            <.input
+              type="select"
+              name="vad"
+              label={gettext("Mode VAD")}
+              options={Enum.map(@vad_modes, &{&1.name, to_string(&1.id)})}
+              value={@params["vad"]}
+            />
+          </div>
+        </.form_section>
 
-        <.input
-          type="checkbox"
-          name="layout_auto"
-          label={gettext("Bascule automatique de mosaïque selon le nombre de participants")}
-          checked={@conf == nil or @conf.layout.auto}
-        />
+        <.form_section
+          :if={@params["media_video"] == "true"}
+          title={gettext("Paramètres vidéo")}
+        >
+          <div class="grid grid-cols-1 gap-x-6 sm:grid-cols-2">
+            <.input
+              type="select"
+              name="video_size"
+              label={gettext("Résolution vidéo")}
+              options={Enum.map(@video_sizes, &{&1.name, to_string(&1.id)})}
+              value={@params["video_size"]}
+            />
+            <.input
+              type="number"
+              name="video_bitrate"
+              label={gettext("Débit vidéo (kb/s)")}
+              value={@params["video_bitrate"]}
+              min="1"
+            />
+            <.input
+              type="select"
+              name="preferred_video_codec"
+              label={gettext("Codec vidéo préféré")}
+              options={[{gettext("aucune préférence"), ""} | Enum.map(@video_codecs, &{&1, &1})]}
+              value={@params["preferred_video_codec"]}
+            />
+          </div>
+        </.form_section>
+
+        <.form_section :if={@params["media_video"] == "true"} title={gettext("Mosaïque")}>
+          <.layout_picker layouts={@layouts} selected={@params["layout_comp"]} />
+
+          <.input
+            type="checkbox"
+            name="layout_auto"
+            label={gettext("Bascule automatique de mosaïque selon le nombre de participants")}
+            checked={@params["layout_auto"] == "true"}
+          />
+
+          <.input
+            type="text"
+            name="logo"
+            label="Logo"
+            value={@params["logo"]}
+            placeholder={gettext("nom de fichier sur le média serveur")}
+          />
+        </.form_section>
 
         <p :if={@error} class="mb-3 text-sm text-error">{@error}</p>
 
@@ -713,7 +813,7 @@ defmodule KelescopeWeb.McuLive do
   end
 
   attr :layouts, :list, required: true
-  attr :selected, :integer, required: true
+  attr :selected, :string, required: true
 
   defp layout_picker(assigns) do
     ~H"""
@@ -725,7 +825,7 @@ defmodule KelescopeWeb.McuLive do
             type="radio"
             name="layout_comp"
             value={l.id}
-            checked={l.id == @selected}
+            checked={to_string(l.id) == @selected}
             class="peer sr-only"
           />
           <img

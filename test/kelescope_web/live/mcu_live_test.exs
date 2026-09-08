@@ -348,7 +348,7 @@ defmodule KelescopeWeb.McuLiveTest do
       "name" => "temp-extra-conf",
       "rate" => "16000",
       "media_audio" => "true",
-      "media_video" => "false",
+      "media_video" => "true",
       "media_text" => "true",
       "logo" => "welcome.png"
     })
@@ -362,7 +362,7 @@ defmodule KelescopeWeb.McuLiveTest do
     uid = uid_from_detail(html)
 
     assert html =~ "16 kHz"
-    assert html =~ "audio, text"
+    assert html =~ "audio, video, text"
     assert html =~ "welcome.png"
 
     view
@@ -423,6 +423,67 @@ defmodule KelescopeWeb.McuLiveTest do
       |> render_submit()
 
     assert html =~ "audio, video, text"
+  end
+
+  test "the audio, video and mosaic sections follow the media checkboxes", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    html = view |> element("button", "Nouvelle conférence") |> render_click()
+
+    assert html =~ "Paramètres audio"
+    assert html =~ "Paramètres vidéo"
+    assert html =~ "Mosaïque"
+
+    html =
+      view
+      |> form("#conference-form", %{"media_audio" => "false", "media_video" => "false"})
+      |> render_change()
+
+    refute html =~ "Paramètres audio"
+    refute html =~ "Paramètres vidéo"
+    refute html =~ "Mosaïque"
+
+    # re-checking a media brings the section back with what was already typed
+    html =
+      view
+      |> form("#conference-form", %{"media_audio" => "true"})
+      |> render_change()
+
+    assert html =~ "Paramètres audio"
+    refute html =~ "Paramètres vidéo"
+  end
+
+  test "editing with the video media unchecked leaves the mosaic settings untouched", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    view |> element("button", "Nouvelle conférence") |> render_click()
+
+    view
+    |> form("#conference-form", %{
+      "domain" => "example.com",
+      "name" => "temp-mosaic-conf",
+      "layout_comp" => "9",
+      "layout_auto" => "true"
+    })
+    |> render_submit()
+
+    view |> form("#create-conference-modal-form", %{"admin" => "alice-admin"}) |> render_submit()
+
+    html = view |> element("[phx-click=toggle]", "temp-mosaic-conf") |> render_click()
+    uid = uid_from_detail(html)
+
+    view
+    |> element("button[phx-value-uid='#{uid}'][phx-click='edit_conference']")
+    |> render_click()
+
+    view |> form("#conference-form", %{"media_video" => "false"}) |> render_change()
+
+    html = view |> form("#conference-form", %{}) |> render_submit()
+
+    assert html =~ ~r/Bascule automatique de mosaïque<\/dt>\s*<dd>\s*oui\s*<\/dd>/
+    assert html =~ "/images/layouts/9.svg"
   end
 
   test "starting then stopping a recording toggles the button", %{conn: conn} do

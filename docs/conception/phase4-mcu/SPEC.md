@@ -6,7 +6,7 @@ Un nouvel écran, `/mcu`, pour gérer les conférences de la MCU (module `mcu`
 d'elixip) : lister les conférences en cours, voir le détail d'une conférence,
 ses participants et leurs statistiques média, en créer, en modifier
 l'intégralité de ses propriétés (résolution/débit vidéo, codec vidéo
-préféré, mode VAD, bascule automatique de mosaïque, fréquence audio, médias
+préféré, mode VAD, bascule automatique de mosaïque, fréquence de mixage, médias
 répondus, logo), en détruire une, et démarrer/arrêter son enregistrement.
 Les dispositions d'écran (layouts) sont représentées par des icônes imagées
 plutôt que par leur seul nom.
@@ -104,12 +104,18 @@ création/modification comme les autres champs simples.
 `layout.auto` (booléen) commande si la mosaïque change automatiquement de
 disposition selon le nombre de participants vidéo
 (`Kelix.Mod.Mcu.follow_auto_layout/1`, dépôt elixip) ; à `false`, le layout
-choisi reste figé. Le formulaire l'envoie systématiquement (comme
-`destroy_when_empty`) plutôt que de l'omettre quand la case n'est pas
-cochée — sans quoi une conférence créée avec la case décochée redeviendrait
-`auto: true` par défaut côté elixip au lieu de rester manuelle.
+choisi reste figé. Quand la section « Mosaïque » est affichée, le formulaire
+envoie `layout` systématiquement (comme `destroy_when_empty`) plutôt que de
+l'omettre quand la case n'est pas cochée — sans quoi une conférence créée
+avec la case décochée redeviendrait `auto: true` par défaut côté elixip au
+lieu de rester manuelle.
 
-### Fréquence audio, médias répondus, logo
+Quand la section est masquée (média `video` décoché), aucun champ `layout_*`
+n'est soumis : kelescope omet alors `layout` entièrement, et elixip garde la
+mosaïque déjà configurée. Même règle pour `video` et
+`preferred_video_codec`, masqués par la même case.
+
+### Fréquence de mixage, médias répondus, logo
 
 `rate` : `8000`, `16000`, `32000` ou `48000` (Hz) — les seules valeurs que
 `Args.int/4` accepte côté elixip (`mcu.ex`), exposées en kHz dans le
@@ -207,19 +213,38 @@ icône de layout, badge « REC »). Une ligne entière (pas seulement le nom) es
 cliquable pour se déplier : elle réinterroge `Control.conference/2`, puis
 `Control.participant/3` pour chaque participant listé, et affiche les
 propriétés complètes (dont résolution/débit vidéo, codec préféré, mode VAD,
-bascule automatique de mosaïque, fréquence audio, médias répondus et logo),
+bascule automatique de mosaïque, fréquence de mixage, médias répondus et logo),
 les participants avec leurs statistiques média, et l'état d'enregistrement,
 avec un bouton « Rafraîchir » manuel.
 
-« Nouvelle conférence » ouvre un formulaire sur **deux colonnes** : à gauche
-la conférence elle-même (domaine — liste déroulante des domaines servis, via
-`Kelescope.Kelixip.DomainsLink.snapshot/0`, même source que l'écran
-Domaines —, nom, participants max, mode VAD, fréquence audio, détruire quand
-vide), à droite la vidéo et les médias (résolution, débit, codec préféré,
-logo, médias répondus) ; le sélecteur de layout par icônes et sa bascule
-automatique tiennent la pleine largeur en dessous. Une seule colonne
-dépassait la hauteur de l'écran : le formulaire garde en plus un
-`max-h-[85vh]` défilant, comme la popup mediaserver de l'écran Scénarios.
+« Nouvelle conférence » ouvre un formulaire découpé en **quatre sections**,
+chacune sur deux colonnes :
+
+1. **Paramètres généraux** — domaine (liste déroulante des domaines servis,
+   via `Kelescope.Kelixip.DomainsLink.snapshot/0`, même source que l'écran
+   Domaines ; absent en modification, le domaine n'est pas modifiable) et
+   nom ; participants max et médias répondus ; détruire quand vide.
+2. **Paramètres audio** — fréquence de mixage et mode VAD.
+3. **Paramètres vidéo** — résolution et débit ; codec vidéo préféré.
+4. **Mosaïque** — sélecteur de disposition par icônes, bascule automatique,
+   logo.
+
+Les sections 2 à 4 ne s'affichent que si le média correspondant est coché :
+la section audio suit `audio`, les sections vidéo et mosaïque suivent
+`video`. Régler le débit vidéo d'une conférence qui ne répond pas la vidéo
+n'a pas de sens, et le logo n'est dessiné que dans les tuiles vides de la
+mosaïque.
+
+Le formulaire est donc dynamique : il porte un `phx-change` qui range tous
+ses champs dans l'assign `form_params` (clés en chaîne, comme les params que
+LiveView renvoie). Le rendu lit cet assign, jamais la conférence
+directement. Deux raisons : les valeurs saisies survivent au ré-affichage
+provoqué par une case média, et une section masquée puis re-cochée revient
+avec ce que l'utilisateur avait déjà saisi plutôt qu'avec les valeurs par
+défaut.
+
+Le formulaire garde un `max-h-[85vh]` défilant, comme la popup mediaserver
+de l'écran Scénarios.
 
 Sa soumission n'appelle pas encore kelixip — elle ouvre `admin_confirm_modal` (nom
 d'administrateur), dont la confirmation appelle `Control.create_conference/3`
@@ -257,7 +282,7 @@ plus, même logique que le vrai module.
 - `Kelescope.Kelixip.ConferencesPollerTest`, calqué sur `StatusPollerTest`.
 - `KelescopeWeb.McuLiveTest` : liste, dépli/détail/participants (dont leurs
   statistiques média), résolution/débit vidéo, codec préféré, mode VAD,
-  bascule automatique de mosaïque, fréquence audio, médias répondus et logo
+  bascule automatique de mosaïque, fréquence de mixage, médias répondus et logo
   affichés puis modifiables (y compris effacer la préférence de codec,
   désactiver la bascule automatique, et décocher tous les médias sans jamais
   les vider), domaine proposé en liste déroulante à la création, état
@@ -290,7 +315,7 @@ plus, même logique que le vrai module.
 - Le domaine d'une nouvelle conférence se choisit dans une liste des domaines
   réellement servis, jamais saisi en texte libre.
 - La résolution vidéo, le débit vidéo, le codec vidéo préféré, le mode VAD,
-  la bascule automatique de mosaïque, la fréquence audio, les médias
+  la bascule automatique de mosaïque, la fréquence de mixage, les médias
   répondus et le logo d'une conférence sont visibles dans le détail et
   modifiables depuis le formulaire de propriétés.
 - Décocher tous les médias ou vider le logo à la modification ne vide jamais
@@ -313,7 +338,7 @@ plus, même logique que le vrai module.
 - Allocation de DID, sélection explicite du `mcu` (mediaserver) à la
   création.
 - Téléversement d'une image de logo : le champ n'accepte qu'un nom de
-  fichier déjà présent sur le média serveur (voir « Fréquence audio, médias
+  fichier déjà présent sur le média serveur (voir « Fréquence de mixage, médias
   répondus, logo » ci-dessus) — kelescope n'a pas de canal pour y déposer un
   fichier.
 - Authentification et rôles (phase 3, README) : le nom d'administrateur saisi
