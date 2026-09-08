@@ -4,7 +4,7 @@
 %global __provides_exclude_from ^/opt/kelescope/.*$
 
 Name:           kelescope
-Version:        0.1.1
+Version:        0.2.0
 Release:        1%{?dist}
 Summary:        Interface d'administration web pour kelixip
 
