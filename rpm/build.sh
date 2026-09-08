@@ -5,7 +5,7 @@ set -euo pipefail
 ORIG_DIR="$(pwd)"
 cd "$(dirname "$0")/.."
 
-VERSION=$(grep -m1 'version:' mix.exs | sed -E 's/.*version: *"([^"]+)".*/\1/')
+VERSION=$(grep -m1 '^Version:' rpm/kelescope.spec | awk '{print $2}')
 TOPDIR="$(pwd)/rpm/build"
 
 rm -rf "$TOPDIR"
@@ -13,7 +13,7 @@ mkdir -p "$TOPDIR"/{SOURCES,RPMS,SRPMS,BUILD,BUILDROOT}
 
 tar --transform "s,^,kelescope-${VERSION}/," \
     --exclude=.git --exclude=_build --exclude=deps --exclude=cover \
-    --exclude=rpm/build --exclude=assets/node_modules \
+    --exclude=rpm/build --exclude=apps/kelescope/assets/node_modules \
     -czf "$TOPDIR/SOURCES/kelescope-${VERSION}.tar.gz" .
 
 rpmbuild \

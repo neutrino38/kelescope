@@ -3,6 +3,15 @@
 %global __requires_exclude_from ^/opt/kelescope/.*$
 %global __provides_exclude_from ^/opt/kelescope/.*$
 
+# Version d'ABI des applications chargees hors release. Figee : elle nomme les
+# repertoires de /opt/kelescope/plugins, et ne suit pas la version produit.
+%global abi 1.0.0
+
+# Versions minimales entre paquets. A relever a la main quand une partie
+# commence a employer une nouveaute du socle.
+%global min_runtime 0.2.0
+%global min_app 0.2.0
+
 Name:           kelescope
 Version:        0.2.0
 Release:        1%{?dist}
@@ -14,21 +23,47 @@ Source0:        %{name}-%{version}.tar.gz
 
 BuildRequires:  erlang >= 26
 BuildRequires:  systemd-rpm-macros
+
+Requires:       kelescope-runtime >= %{min_runtime}
+Requires:       kelescope-app >= %{min_app}
+
+%description
+kelescope est l'interface d'administration web du serveur d'application
+kelixip. Ce paquet n'installe aucun fichier : il tire le socle
+(kelescope-runtime) et l'application (kelescope-app).
+
+Les deux se mettent a jour separement. Une correction de l'application ne
+reexpedie pas le runtime Erlang.
+
+%package runtime
+Summary:        Socle d'execution de kelescope (runtime Erlang, service systemd)
 Requires:       openssl-libs
 Requires:       ncurses-libs
 Requires(pre):  shadow-utils
 %{?systemd_requires}
 
-%description
-kelescope est l'interface d'administration web du serveur d'application
-kelixip. Ce paquet installe une release Elixir/Phoenix autonome (runtime
-Erlang inclus) dans /opt/kelescope, ainsi qu'un service systemd qui
-l'expose en HTTPS sur le port 8443.
+%description runtime
+Release Elixir autonome installee dans /opt/kelescope : runtime Erlang,
+dependances, script de demarrage et service systemd qui expose kelescope en
+HTTPS sur le port 8443.
 
-La compilation nécessite un accès réseau (hex.pm pour les dépendances,
+Ce paquet ne contient aucun code de kelescope. Il charge au demarrage les
+applications presentes dans /opt/kelescope/plugins, fournies par
+kelescope-app.
+
+La compilation necessite un acces reseau (hex.pm pour les dependances,
 GitHub pour les binaires autonomes esbuild/tailwind). Voir
-docs/maintenance/paquet-rpm.md pour les détails et pour la mise en place
+docs/maintenance/paquet-rpm.md pour les details et pour la mise en place
 des certificats TLS.
+
+%package app
+Summary:        Application kelescope (interface web)
+Requires:       kelescope-runtime >= %{min_runtime}
+
+%description app
+Code de l'interface web de kelescope, installe dans
+/opt/kelescope/plugins. Ne contient ni runtime Erlang ni dependances : il
+s'appuie sur celles de kelescope-runtime.
 
 %prep
 %autosetup
@@ -46,6 +81,7 @@ fi
 
 export HOME=%{_builddir}
 export MIX_ENV=prod
+export KELESCOPE_BUILD_VERSION=%{version}-%{release}
 mix local.hex --force
 mix local.rebar --force
 mix deps.get --only prod
@@ -58,17 +94,22 @@ rm -rf %{buildroot}
 install -d %{buildroot}/opt/kelescope
 cp -a _build/prod/rel/kelescope/. %{buildroot}/opt/kelescope/
 
+# priv est un lien symbolique dans _build : -L le deroule.
+install -d %{buildroot}/opt/kelescope/plugins/kelescope-%{abi}
+cp -aL _build/prod/lib/kelescope/ebin _build/prod/lib/kelescope/priv \
+    %{buildroot}/opt/kelescope/plugins/kelescope-%{abi}/
+
 install -Dm644 rpm/kelescope.service %{buildroot}%{_unitdir}/kelescope.service
 install -Dm640 rpm/kelescope.env %{buildroot}%{_sysconfdir}/kelescope/kelescope.env
 
-%pre
+%pre runtime
 getent group kelixip >/dev/null || groupadd -r kelixip
 getent passwd kelixip >/dev/null || \
     useradd -r -g kelixip -d /opt/kelescope -s /sbin/nologin \
     -c "Service kelixip/kelescope" kelixip
 exit 0
 
-%post
+%post runtime
 %systemd_post kelescope.service
 
 if [ "$1" -eq 1 ]; then
@@ -127,19 +168,35 @@ if [ "$1" -eq 1 ]; then
     fi
 fi
 
-%preun
+%preun runtime
 %systemd_preun kelescope.service
 
-%postun
+%postun runtime
 %systemd_postun_with_restart kelescope.service
 
 %files
+
+%files runtime
 %defattr(-,root,root,-)
-/opt/kelescope
+%dir /opt/kelescope
+%dir /opt/kelescope/plugins
+/opt/kelescope/bin
+/opt/kelescope/erts-*
+/opt/kelescope/lib
+/opt/kelescope/releases
 %{_unitdir}/kelescope.service
 %attr(0640,root,kelixip) %config(noreplace) %{_sysconfdir}/kelescope/kelescope.env
 
+%files app
+%defattr(-,root,root,-)
+/opt/kelescope/plugins/kelescope-%{abi}
+
 %changelog
+* Tue Sep 08 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.2.0-1
+- Decoupage en kelescope-runtime et kelescope-app : une correction de
+  l'interface web ne reexpedie plus le runtime Erlang.
+- Ecran MCU (/mcu), vue des domaines et compteurs en direct.
+
 * Tue Aug 25 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.1.1-1
 - Panneau de statut kelixip (équivalent kelictl status) au-dessus du monitor, rafraîchi toutes les 20s.
 

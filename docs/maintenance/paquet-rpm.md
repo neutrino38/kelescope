@@ -1,20 +1,45 @@
-# Paquet RPM
+# Paquets RPM
 
-Le paquet `kelescope` installe une release Elixir autonome dans
-`/opt/kelescope` et un service systemd `kelescope.service` qui l'expose en
-HTTPS sur le port 8443. La release embarque son propre runtime Erlang : la
-machine cible n'a besoin ni d'Elixir ni d'Erlang installés, seulement des
-bibliothèques système habituelles (OpenSSL, ncurses), déjà présentes sur une
-installation RHEL/AlmaLinux standard.
+kelescope est livré en trois paquets.
 
-Fichiers du paquet : `rpm/kelescope.spec`, `rpm/kelescope.service`,
-`rpm/kelescope.env`, `rpm/build.sh`.
+| Paquet | Contenu | Taille |
+|---|---|---|
+| `kelescope` | Méta-paquet. Aucun fichier. Il tire les deux autres. | 7 Ko |
+| `kelescope-runtime` | Le socle : runtime Erlang, dépendances, script de démarrage, service systemd, fichier de configuration. | 7,4 Mo |
+| `kelescope-app` | L'interface web elle-même : les `.beam` du projet, les assets et les traductions. | 447 Ko |
 
-## Construire le paquet
+Le socle ne contient aucun code de kelescope. Corriger l'interface web
+n'expédie donc que 447 Ko, au lieu des 7,6 Mo d'un paquet unique.
+
+Décision et conception :
+[ADR-002](../architecture/adr-002-decoupage-paquets-rpm.md),
+[SPEC](../conception/decoupage-rpm/SPEC.md).
+
+## Arborescence installée
+
+```
+/opt/kelescope/
+├── erts-14.2.5/        ┐
+├── lib/                ├─ kelescope-runtime
+├── releases/           │
+├── bin/kelescope       ┘
+└── plugins/
+    └── kelescope-1.0.0/{ebin,priv}   ─ kelescope-app
+```
+
+Le socle démarre un chargeur. Au démarrage, ce chargeur monte toutes les
+applications présentes dans `/opt/kelescope/plugins`, puis les lance.
+
+`1.0.0` est un numéro d'ABI, c'est-à-dire le contrat interne entre le socle et
+l'application. Il est figé : il ne suit pas la version produit, qui vit dans le
+champ `Version` du RPM. Ne pas le confondre avec la version affichée par
+`rpm -q kelescope-app`.
+
+## Construire les paquets
 
 Prérequis sur la machine de build : `elixir` (≥ 1.17) dans le `PATH`,
-`erlang` (≥ 26, paquet RPM), `rpmbuild`, et un accès réseau à hex.pm et
-GitHub. Elixir n'existe pas comme paquet RPM pour EL9 : la version
+`erlang` (≥ 26, paquet RPM), `rpmbuild`, et un accès réseau à hex.pm, GitHub
+et npmjs.org. Elixir n'existe pas comme paquet RPM pour EL9 : la version
 installée est vérifiée au début de la section `%build` du spec (pas via
 `BuildRequires`, que rpmbuild ne peut valider que contre la base RPM).
 
@@ -22,28 +47,31 @@ installée est vérifiée au début de la section `%build` du spec (pas via
 ./rpm/build.sh
 ```
 
-Le script archive l'arbre de travail courant (hors `.git`, `_build`,
-`deps`), puis appelle `rpmbuild`. Le paquet est déplacé dans le
-répertoire depuis lequel `build.sh` a été lancé, et l'arborescence de
-build (`rpm/build/`) est supprimée.
+Le script archive l'arbre de travail courant, puis appelle `rpmbuild`. Les
+trois paquets sont déposés dans le répertoire depuis lequel `build.sh` a été
+lancé, et l'arborescence de build (`rpm/build/`) est supprimée.
 
-L'étape de build télécharge les dépendances Elixir (hex.pm) et les
-binaires autonomes de tailwind et esbuild (GitHub, npmjs.org) : c'est la
-seule différence notable avec le packaging RPM d'une application non-web.
-Un environnement de build isolé du réseau (mock, koji) ne peut pas
-construire ce paquet tel quel ; il faut soit lui donner un accès réseau
-pour ces trois domaines, soit pré-construire la release ailleurs
-(`MIX_ENV=prod mix assets.deploy && MIX_ENV=prod mix release`) et adapter
-la section `%build` du spec pour réutiliser `_build/prod/rel/kelescope`
-sans relancer ces commandes.
+La version produit se lit dans le champ `Version` de `rpm/kelescope.spec`, et
+nulle part ailleurs. Les fichiers `mix.exs` portent des versions d'ABI figées,
+qu'il ne faut pas relever pour une livraison ordinaire.
 
-La version du paquet (champ `Version` du spec) suit celle de `mix.exs` et
-doit être mise à jour à la main lors d'un changement de version.
+L'étape de build télécharge les dépendances Elixir (hex.pm) et les binaires
+autonomes de tailwind et esbuild (GitHub, npmjs.org). Un environnement de build
+isolé du réseau (mock, koji) ne peut pas construire ces paquets tels quels ; il
+faut soit lui donner un accès à ces trois domaines, soit pré-construire ailleurs
+(`MIX_ENV=prod mix assets.deploy && MIX_ENV=prod mix release`) et adapter la
+section `%build` du spec.
+
+Deux constructions successives du socle ne sont pas identiques au bit près :
+`releases/COOKIE` est régénéré par `mix release`, et certains `.beam` de
+dépendances ne sont pas reproductibles. Réinstaller `kelescope-runtime` change
+donc le cookie Erlang par défaut du nœud. Fixer `RELEASE_COOKIE` dans
+`kelescope.env` si ce mouvement pose problème.
 
 ## Installer
 
 ```
-dnf install ./kelescope-0.1.1-1.el9.x86_64.rpm
+dnf install ./kelescope-*.rpm
 ```
 
 L'installation crée un compte système `kelixip` (sans shell de connexion)
@@ -67,10 +95,9 @@ vers des fichiers absents ou illisibles (le cas dès la première
 installation, avant que les certificats ne soient déposés), et que le
 terminal est interactif, l'installation demande le chemin du certificat
 puis celui de la clé privée. Une réponse vide sur l'une des deux
-questions garde le chemin déjà présent dans `kelescope.env` (le défaut
-`/etc/kelescope/tls/kelescope.{crt,key}` documenté ci-dessous). Sans
-terminal interactif, ou si les chemins renseignés restent invalides,
-l'installation affiche un rappel plutôt que d'échouer.
+questions garde le chemin déjà présent dans `kelescope.env`. Sans terminal
+interactif, ou si les chemins renseignés restent invalides, l'installation
+affiche un rappel plutôt que d'échouer.
 
 ## Configurer
 
@@ -80,10 +107,10 @@ par systemd (`EnvironmentFile=`).
 | Variable | Rôle |
 |---|---|
 | `PHX_HOST` | Nom d'hôte public, utilisé pour générer les URLs. |
-| `SECRET_KEY_BASE` | Secret de signature des sessions. Au moins 64 caractères, sinon le service démarre mais renvoie une erreur 500 sur chaque requête. Générer avec `mix phx.gen.secret` ou `openssl rand -base64 48`, directement sur la machine cible (voir remarque sur le copier-coller ci-dessous). |
+| `SECRET_KEY_BASE` | Secret de signature des sessions. Au moins 64 caractères, sinon le service démarre mais renvoie une erreur 500 sur chaque requête. Générer avec `openssl rand -base64 48`, directement sur la machine cible (voir remarque sur le copier-coller ci-dessous). |
 | `RELEASE_NODE` | Identité du nœud Erlang de kelescope (nom long, ex. `kelescope@host.example.org`). Nécessite `RELEASE_DISTRIBUTION=name`. |
 | `RELEASE_DISTRIBUTION` | Mode de distribution Erlang. À positionner à `name` : une release Elixir démarre par défaut en noms courts (`sname`), incompatible avec un `RELEASE_NODE` en nom long ou en adresse IP. Sans cette variable, le service ne démarre pas (`net_kernel` échoue avec `nodistribution`). |
-| `RELEASE_COOKIE` | Cookie Erlang du nœud kelescope lui-même. Laissé vide, `mix release` en a déjà fixé un par défaut à la construction ; à ne renseigner que si plusieurs nœuds kelescope doivent partager une identité. |
+| `RELEASE_COOKIE` | Cookie Erlang du nœud kelescope lui-même. Laissé vide, la valeur par défaut vient de `releases/COOKIE`, régénéré à chaque construction du socle. À renseigner si cette valeur doit rester stable, ou si plusieurs nœuds kelescope doivent partager une identité. |
 | `KELIXIP_NODE` | Nœud kelixip à surveiller (nom long). |
 | `KELIXIP_COOKIE` | Cookie Erlang partagé avec ce nœud kelixip, le même que celui utilisé par `kelictl`. Doit être identique octet pour octet à celui du nœud kelixip (voir remarque sur le copier-coller ci-dessous) : la moindre différence, même invisible, fait échouer la connexion avec `Invalid challenge reply` dans le journal de kelixip. |
 | `KELESCOPE_HTTPS_PORT` | Port HTTPS d'écoute (8443 par défaut). |
@@ -160,6 +187,16 @@ systemctl status kelescope
 journalctl -u kelescope -f
 ```
 
+Au démarrage, le chargeur écrit dans le journal la liste des applications
+qu'il a montées :
+
+```
+[info] kelescope: applications chargées [:kelescope]
+```
+
+Cette ligne absente, ou une liste vide, signale que `kelescope-app` n'est pas
+installé.
+
 Le service écrit ses journaux sur la sortie standard, capturée par
 journald : aucune rotation de fichier de log à gérer.
 
@@ -169,14 +206,37 @@ Symptômes fréquents dans `journalctl -u kelescope` :
 |---|---|
 | `failed_to_start_child,net_kernel,{'EXIT',nodistribution}` | `RELEASE_DISTRIBUTION=name` absent, voir la table des variables. |
 | `Runtime terminating during boot` (sans autre détail) | Le plus souvent `KELESCOPE_SSL_CERTFILE`/`KELESCOPE_SSL_KEYFILE` illisible par `kelixip`, voir la section certificats. |
+| `plugin kelescope : module … illisible` | Le paquet `kelescope-app` est incomplet ou corrompu. Le nœud refuse de démarrer plutôt que de tourner amputé. Réinstaller le paquet. |
 | `cookie store expects conn.secret_key_base to be at least 64 bytes` | `SECRET_KEY_BASE` fait moins de 64 caractères (souvent un caractère perdu au copier-coller). |
 | `kelixip link to <nœud>: :connect_failed` | À corréler avec `journalctl -u kelixip` sur l'autre hôte. `Invalid challenge reply` : `KELIXIP_COOKIE` ne correspond pas au cookie du nœud kelixip. Pas de message de rejet côté kelixip : vérifier le réseau (EPMD 4369/tcp et port de distribution BEAM, voir ADR-001) et que `KELIXIP_NODE` correspond exactement au nom et à l'adresse du nœud kelixip (`ps -eo cmd | grep beam.smp` sur l'hôte kelixip donne son `-name` et son `-setcookie` réels). |
 
 ## Mettre à jour ou désinstaller
 
+Mise à jour complète :
+
 ```
-dnf upgrade ./kelescope-<version>-1.el9.x86_64.rpm
-dnf remove kelescope
+dnf upgrade ./kelescope-*.rpm
+```
+
+Mise à jour de la seule interface web, quand le socle n'a pas changé :
+
+```
+dnf upgrade ./kelescope-app-<version>-1.el9.x86_64.rpm
+systemctl restart kelescope
+```
+
+Le service doit être redémarré à la main : le rechargement à chaud n'est pas
+encore livré.
+
+Le paquet `kelescope-app` déclare `Requires: kelescope-runtime >= <version
+minimale>`. Cette borne est tenue à la main dans `rpm/kelescope.spec` : elle est
+relevée quand l'interface web commence à employer une nouveauté du socle. Un
+socle plus récent que l'application est toujours accepté.
+
+Désinstallation :
+
+```
+dnf remove kelescope kelescope-app kelescope-runtime
 ```
 
 La désinstallation arrête et désactive le service, mais laisse en place

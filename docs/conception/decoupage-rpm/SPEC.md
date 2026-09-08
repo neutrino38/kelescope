@@ -318,6 +318,9 @@ le plus faible une fois les deux premières livrées.
 | `Application.load/1` sur une application dont la configuration est déjà posée | Les valeurs posées sont conservées. `runtime.exs` peut donc configurer une partie avant que le chargeur ne la charge. |
 | `Application.unload/1` | Vide la configuration de l'application. `reload/1` doit réappliquer les surcharges mémorisées, sinon la partie repart sans sa configuration. |
 | `reload/1` sur une partie modifiée, nœud en marche | Le nouveau code répond, un module ajouté est chargé, un module supprimé est purgé et devient introuvable, le processus supervisé redémarre. La durée de fonctionnement du nœud n'est pas remise à zéro : pas de redémarrage. |
+| `priv` dans `_build/prod/lib/<application>/` | C'est un lien symbolique vers `apps/<application>/priv`. La copie vers `plugins/` doit le dérouler (`cp -aL`), sinon le paquet ne contient ni les assets ni les traductions. |
+| La chaîne complète, release empaquetée puis démarrée depuis les RPM | Le chargeur monte `:kelescope`, l'endpoint sert en HTTPS, les trois pages répondent, les assets digérés sont servis depuis le `priv` du plugin. |
+| Deux constructions successives du paquet `kelescope-runtime` | 2 fichiers diffèrent sur 1552 : `releases/COOKIE`, que `mix release` régénère à chaque construction, et un `.beam` de `phoenix_live_dashboard`, non reproductible. Aucun fichier de kelescope. |
 | Les trois branches de `kelescope-reload-plugin` | Nominale, service arrêté, et repli sur `try-restart` quand le nœud est injoignable : les trois se comportent comme prévu. |
 
 ## Reste à éprouver
@@ -325,8 +328,7 @@ le plus faible une fois les deux premières livrées.
 - `bin/kelescope rpc` lancé depuis un vrai `%posttrans`, sur EL9, avec
   `kelescope.env` sourcé. Le script a été éprouvé hors du contexte rpm
   seulement.
-- La totalité de la chaîne avec Phoenix et LiveView. Le jet jetable ne portait
-  ni endpoint ni vue.
+- L'installation par `dnf` sur une machine EL9, et le service systemd.
 
 ## Tests
 
@@ -350,8 +352,11 @@ le plus faible une fois les deux premières livrées.
 
 1. `dnf install ./kelescope-*.rpm` installe l'ensemble, le service démarre, les
    trois pages répondent.
-2. Deux builds qui ne diffèrent que par le code d'une partie produisent un
-   `/opt/kelescope` identique hors `plugins/`.
+2. Le paquet `kelescope-runtime` ne contient aucun fichier de
+   `/opt/kelescope/plugins`. Mettre à jour une partie ne réécrit donc rien du
+   socle. Une reconstruction du socle, elle, n'est pas reproductible au bit
+   près : `releases/COOKIE` est régénéré par `mix release`, et certains `.beam`
+   de dépendances ne le sont pas non plus.
 3. Mettre à jour une partie seule, service en marche, la recharge sans
    redémarrer le nœud. La durée de fonctionnement du nœud le prouve. La page
    concernée sert la nouvelle version, les autres ne sont pas interrompues.
@@ -387,6 +392,9 @@ le plus faible une fois les deux premières livrées.
 - **La configuration reste dans le paquet runtime.** Une partie qui aurait
   besoin d'une clé de configuration compile-time nouvelle imposerait une
   livraison du runtime. L'invariant 5 l'interdit ; il faudra s'y tenir.
-- **Le comportement avec Phoenix et LiveView n'est pas éprouvé.** Le jet
-  jetable a validé le mécanisme sur des modules simples. L'étape 1 est le
-  premier test réel.
+- **`releases/COOKIE` change à chaque construction du socle.** Réinstaller
+  `kelescope-runtime` change donc le cookie Erlang par défaut du nœud. Les
+  déploiements qui ne veulent pas de ce mouvement doivent fixer `RELEASE_COOKIE`
+  dans `kelescope.env`.
+- **L'installation par `dnf` et le service systemd ne sont pas éprouvés ici.**
+  Les paquets ont été montés et démarrés à la main, hors systemd.
