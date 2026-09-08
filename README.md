@@ -18,13 +18,13 @@ Registrations view. Ability to remove an AOR.
 DB Connection status
 Ability to shutdown a scenario + filters on the monitor view
 
-### Phase 3 - OAUth support
-- definition of auth scopes + support for OAuth + predefined support for Google, MS and an Open source alternative
-- role definitions
-  - general monitor
-  - domain monitor
-  - general admin
-  - domain admin
+### Phase 3 - Authentication and roles
+- roles: general monitor, domain monitor, general admin, domain admin
+- authentication by passkey (WebAuthn) plus a client certificate issued by kelescope, both required
+- general administrators create accounts by invitation, reset and revoke access
+- dev mode without certificate, acting as a general admin
+
+Decision record: [docs/architecture/adr-004-authentification-passkey-certificat.md](docs/architecture/adr-004-authentification-passkey-certificat.md), plan: [docs/conception/phase3-auth/SPEC.md](docs/conception/phase3-auth/SPEC.md).
 
 ### Phase 4 - config
 Domain config
