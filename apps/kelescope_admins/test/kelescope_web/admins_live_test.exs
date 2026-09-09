@@ -137,6 +137,34 @@ defmodule KelescopeWeb.AdminsLiveTest do
     assert {:ok, _account} = Auth.fetch_account(admin.id)
   end
 
+  test "refuses to disable or demote one's own account", %{conn: conn, admin: admin} do
+    # A second global administrator, so a refusal can only come from the
+    # self-action rules and not from the last-global-admin invariant.
+    keeper = admin_fixture(:admin, :all)
+    {:ok, view, _html} = live(conn, ~p"/admins")
+
+    refute has_element?(view, ~s|#account-#{admin.id} button[phx-click="toggle_enabled"]|)
+    refute has_element?(view, ~s|#account-#{admin.id} button[phx-click="edit"]|)
+    assert has_element?(view, ~s|#account-#{keeper.id} button[phx-click="toggle_enabled"]|)
+    assert has_element?(view, ~s|#account-#{keeper.id} button[phx-click="edit"]|)
+
+    html =
+      render_click(view, "toggle_enabled", %{"id" => admin.id, "enabled" => "false"})
+
+    assert html =~ "Vous ne pouvez pas désactiver votre propre compte."
+    assert {:ok, %{enabled: true}} = Auth.fetch_account(admin.id)
+
+    html =
+      render_submit(view, "update_role", %{
+        "admin_id" => admin.id,
+        "level" => "monitor",
+        "scope" => "a.example.com"
+      })
+
+    assert html =~ "Vous ne pouvez pas changer votre propre rôle."
+    assert {:ok, %{level: :admin, scope: :all}} = Auth.fetch_account(admin.id)
+  end
+
   test "revokes a workstation of another account", %{conn: conn} do
     other = admin_fixture(:monitor, :all)
     {:ok, second} = Auth.issue_certificate(other.id, "poste maison")

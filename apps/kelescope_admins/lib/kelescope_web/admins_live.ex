@@ -66,19 +66,28 @@ defmodule KelescopeWeb.AdminsLive do
   end
 
   def handle_event("update_role", %{"admin_id" => id, "level" => level, "scope" => scope}, socket) do
-    case Auth.update_role(id, %{level: level, scope: parse_scope(scope)}) do
-      {:ok, _account} ->
-        {:noreply, socket |> assign(:editing, nil) |> assign(:error, nil) |> load_accounts()}
+    if id == socket.assigns.current_id do
+      {:noreply, assign(socket, :error, gettext("Vous ne pouvez pas changer votre propre rôle."))}
+    else
+      case Auth.update_role(id, %{level: level, scope: parse_scope(scope)}) do
+        {:ok, _account} ->
+          {:noreply, socket |> assign(:editing, nil) |> assign(:error, nil) |> load_accounts()}
 
-      {:error, reason} ->
-        {:noreply, assign(socket, :error, error_message(reason))}
+        {:error, reason} ->
+          {:noreply, assign(socket, :error, error_message(reason))}
+      end
     end
   end
 
   def handle_event("toggle_enabled", %{"id" => id, "enabled" => enabled}, socket) do
-    case Auth.set_enabled(id, enabled == "true") do
-      {:ok, _account} -> {:noreply, socket |> assign(:error, nil) |> load_accounts()}
-      {:error, reason} -> {:noreply, assign(socket, :error, error_message(reason))}
+    if id == socket.assigns.current_id do
+      {:noreply,
+       assign(socket, :error, gettext("Vous ne pouvez pas désactiver votre propre compte."))}
+    else
+      case Auth.set_enabled(id, enabled == "true") do
+        {:ok, _account} -> {:noreply, socket |> assign(:error, nil) |> load_accounts()}
+        {:error, reason} -> {:noreply, assign(socket, :error, error_message(reason))}
+      end
     end
   end
 
@@ -185,7 +194,13 @@ defmodule KelescopeWeb.AdminsLive do
             <td class="border-b p-2">{length(Kelescope.Auth.active_certificates(account))}</td>
             <td class="border-b p-2">{date(account.last_login_at)}</td>
             <td class="border-b space-x-1 p-2">
-              <button type="button" phx-click="edit" phx-value-id={account.id} class="btn btn-xs">
+              <button
+                :if={account.id != @current_id}
+                type="button"
+                phx-click="edit"
+                phx-value-id={account.id}
+                class="btn btn-xs"
+              >
                 {gettext("Rôle")}
               </button>
               <button
@@ -197,6 +212,7 @@ defmodule KelescopeWeb.AdminsLive do
                 {gettext("Réinitialiser")}
               </button>
               <button
+                :if={account.id != @current_id}
                 type="button"
                 phx-click="toggle_enabled"
                 phx-value-id={account.id}
