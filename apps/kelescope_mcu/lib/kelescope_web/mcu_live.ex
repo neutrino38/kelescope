@@ -456,6 +456,7 @@ defmodule KelescopeWeb.McuLive do
   def render(assigns) do
     ~H"""
     <.nav current={:mcu} locale={@locale} scope={@current_scope} />
+    <Layouts.flash_group flash={@flash} />
     <div class="p-6">
       <p :if={@error} class="mb-4 rounded bg-error/15 px-3 py-2 text-sm text-error">{@error}</p>
 

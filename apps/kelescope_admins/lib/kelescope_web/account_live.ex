@@ -139,6 +139,7 @@ defmodule KelescopeWeb.AccountLive do
   def render(assigns) do
     ~H"""
     <.nav current={:account} locale={@locale} scope={@current_scope} />
+    <Layouts.flash_group flash={@flash} />
 
     <div id="account" phx-hook="Passkey" class="mx-auto max-w-3xl space-y-8 p-6">
       <h1 class="text-lg font-semibold">{gettext("Mon compte")} — {@account.id}</h1>

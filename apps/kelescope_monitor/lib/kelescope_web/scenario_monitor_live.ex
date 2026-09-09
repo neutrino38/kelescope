@@ -109,6 +109,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   def render(assigns) do
     ~H"""
     <.nav current={:monitor} locale={@locale} scope={@current_scope} />
+    <Layouts.flash_group flash={@flash} />
     <div class="p-6">
       <div class={[
         "mb-4 rounded px-3 py-2 text-sm font-medium",

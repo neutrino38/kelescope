@@ -79,6 +79,7 @@ defmodule KelescopeWeb.LoginLive do
   def render(assigns) do
     ~H"""
     <div id="login" phx-hook="Passkey" class="mx-auto max-w-lg p-6">
+      <Layouts.flash_group flash={@flash} />
       <div class="mb-4 flex items-center justify-end gap-3">
         <.locale_switch locale={@locale} />
         <.font_size />

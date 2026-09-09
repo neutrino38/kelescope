@@ -81,5 +81,23 @@ mix gettext.extract --merge
 
 Puis remplir les `msgstr` vides de `priv/gettext/en/LC_MESSAGES/default.po`.
 
-`mix gettext.extract --check-up-to-date`, lancé dans une partie, dit si son
-catalogue a pris du retard sur le code.
+**Piège : `gettext.merge` invente des traductions.** Pour une chaîne nouvelle,
+il cherche la chaîne existante la plus proche, recopie sa traduction, et marque
+l'entrée `fuzzy`. La traduction recopiée est presque toujours fausse. Exemple
+vécu : « Connexion perdue » a reçu « Sign in ».
+
+Après chaque `merge`, cherchez donc `fuzzy` dans le catalogue. Corrigez la
+traduction, puis retirez le mot `fuzzy` de la ligne de commentaire.
+
+```
+grep -c fuzzy priv/gettext/en/LC_MESSAGES/default.po   # doit valoir 0
+grep -c '^msgstr ""$' priv/gettext/en/LC_MESSAGES/default.po   # doit valoir 1
+```
+
+Le 1 attendu est l'en-tête du fichier, qui porte toujours un `msgstr` vide.
+
+**`--check-up-to-date` ne suffit pas.** L'option signale une chaîne absente du
+catalogue ou devenue obsolète. Elle ne voit pas les références de lignes
+périmées : ajouter une ligne au-dessus d'un `gettext` décale ses références
+sans qu'elle s'en plaigne. Relancez `--merge` après toute modification d'un
+fichier qui contient des `gettext`.

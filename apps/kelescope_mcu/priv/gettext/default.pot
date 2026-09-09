@@ -11,52 +11,52 @@
 msgid ""
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:546
+#: lib/kelescope_web/mcu_live.ex:547
 #, elixir-autogen, elixir-format
 msgid "%{count} participants"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:611
+#: lib/kelescope_web/mcu_live.ex:612
 #, elixir-autogen, elixir-format
 msgid "%{kbps} kb/s"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:619
+#: lib/kelescope_web/mcu_live.ex:620
 #, elixir-autogen, elixir-format
 msgid "%{khz} kHz"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:902
+#: lib/kelescope_web/mcu_live.ex:903
 #, elixir-autogen, elixir-format
 msgid "Annuler"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:640
+#: lib/kelescope_web/mcu_live.ex:641
 #, elixir-autogen, elixir-format
 msgid "Arrêter l'enregistrement"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:664
+#: lib/kelescope_web/mcu_live.ex:665
 #, elixir-autogen, elixir-format
 msgid "Aucun participant."
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:485
+#: lib/kelescope_web/mcu_live.ex:486
 #, elixir-autogen, elixir-format
 msgid "Aucune conférence."
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:616
+#: lib/kelescope_web/mcu_live.ex:617
 #, elixir-autogen, elixir-format
 msgid "Bascule automatique de mosaïque"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:885
+#: lib/kelescope_web/mcu_live.ex:886
 #, elixir-autogen, elixir-format
 msgid "Bascule automatique de mosaïque selon le nombre de participants"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:523
+#: lib/kelescope_web/mcu_live.ex:524
 #, elixir-autogen, elixir-format
 msgid "Cette action est irréversible."
 msgstr ""
@@ -71,92 +71,92 @@ msgstr ""
 msgid "Cette conférence n'est pas en cours d'enregistrement."
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:474
-#: lib/kelescope_web/mcu_live.ex:576
+#: lib/kelescope_web/mcu_live.ex:475
+#: lib/kelescope_web/mcu_live.ex:577
 #, elixir-autogen, elixir-format
 msgid "Chargement…"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:772
+#: lib/kelescope_web/mcu_live.ex:773
 #, elixir-autogen, elixir-format
 msgid "Choisir un domaine"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:612
-#: lib/kelescope_web/mcu_live.ex:872
+#: lib/kelescope_web/mcu_live.ex:613
+#: lib/kelescope_web/mcu_live.ex:873
 #, elixir-autogen, elixir-format
 msgid "Codec vidéo préféré"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:905
+#: lib/kelescope_web/mcu_live.ex:906
 #, elixir-autogen, elixir-format
 msgid "Continuer"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:509
+#: lib/kelescope_web/mcu_live.ex:510
 #, elixir-autogen, elixir-format
 msgid "Créer"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:505
+#: lib/kelescope_web/mcu_live.ex:506
 #, elixir-autogen, elixir-format
 msgid "Créer cette conférence"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:606
+#: lib/kelescope_web/mcu_live.ex:607
 #, elixir-autogen, elixir-format
 msgid "Créée le"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:919
+#: lib/kelescope_web/mcu_live.ex:920
 #, elixir-autogen, elixir-format
 msgid "Disposition"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:511
-#: lib/kelescope_web/mcu_live.ex:769
+#: lib/kelescope_web/mcu_live.ex:512
+#: lib/kelescope_web/mcu_live.ex:770
 #, elixir-autogen, elixir-format
 msgid "Domaine"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:610
+#: lib/kelescope_web/mcu_live.ex:611
 #, elixir-autogen, elixir-format
 msgid "Débit vidéo"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:865
+#: lib/kelescope_web/mcu_live.ex:866
 #, elixir-autogen, elixir-format
 msgid "Débit vidéo (kb/s)"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:649
+#: lib/kelescope_web/mcu_live.ex:650
 #, elixir-autogen, elixir-format
 msgid "Démarrer l'enregistrement"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:521
-#: lib/kelescope_web/mcu_live.ex:557
+#: lib/kelescope_web/mcu_live.ex:522
+#: lib/kelescope_web/mcu_live.ex:558
 #, elixir-autogen, elixir-format
 msgid "Détruire"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:517
+#: lib/kelescope_web/mcu_live.ex:518
 #, elixir-autogen, elixir-format
 msgid "Détruire cette conférence"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:604
-#: lib/kelescope_web/mcu_live.ex:817
+#: lib/kelescope_web/mcu_live.ex:605
+#: lib/kelescope_web/mcu_live.ex:818
 #, elixir-autogen, elixir-format
 msgid "Détruire quand vide"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:631
+#: lib/kelescope_web/mcu_live.ex:632
 #, elixir-autogen, elixir-format
 msgid "Enregistrement en cours"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:905
+#: lib/kelescope_web/mcu_live.ex:906
 #, elixir-autogen, elixir-format
 msgid "Enregistrer"
 msgstr ""
@@ -168,8 +168,8 @@ msgstr ""
 msgid "Erreur : %{reason}"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:618
-#: lib/kelescope_web/mcu_live.ex:831
+#: lib/kelescope_web/mcu_live.ex:619
+#: lib/kelescope_web/mcu_live.ex:832
 #, elixir-autogen, elixir-format
 msgid "Fréquence de mixage"
 msgstr ""
@@ -179,131 +179,131 @@ msgstr ""
 msgid "Impossible de détruire : la conférence a encore des participants."
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:585
+#: lib/kelescope_web/mcu_live.ex:586
 #, elixir-autogen, elixir-format
 msgid "Impossible de lire la conférence : %{reason}"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:614
-#: lib/kelescope_web/mcu_live.ex:843
+#: lib/kelescope_web/mcu_live.ex:615
+#: lib/kelescope_web/mcu_live.ex:844
 #, elixir-autogen, elixir-format
 msgid "Mode VAD"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:678
+#: lib/kelescope_web/mcu_live.ex:679
 #, elixir-autogen, elixir-format
 msgid "Modifier les propriétés"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:879
+#: lib/kelescope_web/mcu_live.ex:880
 #, elixir-autogen, elixir-format
 msgid "Mosaïque"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:620
-#: lib/kelescope_web/mcu_live.ex:792
+#: lib/kelescope_web/mcu_live.ex:621
+#: lib/kelescope_web/mcu_live.ex:793
 #, elixir-autogen, elixir-format
 msgid "Médias"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:783
+#: lib/kelescope_web/mcu_live.ex:784
 #, elixir-autogen, elixir-format
 msgid "Nom"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:469
-#: lib/kelescope_web/mcu_live.ex:759
+#: lib/kelescope_web/mcu_live.ex:470
+#: lib/kelescope_web/mcu_live.ex:760
 #, elixir-autogen, elixir-format
 msgid "Nouvelle conférence"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:825
+#: lib/kelescope_web/mcu_live.ex:826
 #, elixir-autogen, elixir-format
 msgid "Paramètres audio"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:763
+#: lib/kelescope_web/mcu_live.ex:764
 #, elixir-autogen, elixir-format
 msgid "Paramètres généraux"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:852
+#: lib/kelescope_web/mcu_live.ex:853
 #, elixir-autogen, elixir-format
 msgid "Paramètres vidéo"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:602
-#: lib/kelescope_web/mcu_live.ex:787
+#: lib/kelescope_web/mcu_live.ex:603
+#: lib/kelescope_web/mcu_live.ex:788
 #, elixir-autogen, elixir-format
 msgid "Participants max"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:760
+#: lib/kelescope_web/mcu_live.ex:761
 #, elixir-autogen, elixir-format
 msgid "Propriétés de la conférence"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:669
+#: lib/kelescope_web/mcu_live.ex:670
 #, elixir-autogen, elixir-format
 msgid "Rafraîchir"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:608
-#: lib/kelescope_web/mcu_live.ex:858
+#: lib/kelescope_web/mcu_live.ex:609
+#: lib/kelescope_web/mcu_live.ex:859
 #, elixir-autogen, elixir-format
 msgid "Résolution vidéo"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:613
-#: lib/kelescope_web/mcu_live.ex:873
+#: lib/kelescope_web/mcu_live.ex:614
+#: lib/kelescope_web/mcu_live.ex:874
 #, elixir-autogen, elixir-format
 msgid "aucune préférence"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:658
+#: lib/kelescope_web/mcu_live.ex:659
 #, elixir-autogen, elixir-format
 msgid "depuis"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:655
+#: lib/kelescope_web/mcu_live.ex:656
 #, elixir-autogen, elixir-format
 msgid "nom"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:894
+#: lib/kelescope_web/mcu_live.ex:895
 #, elixir-autogen, elixir-format
 msgid "nom de fichier sur le média serveur"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:605
-#: lib/kelescope_web/mcu_live.ex:617
+#: lib/kelescope_web/mcu_live.ex:606
+#: lib/kelescope_web/mcu_live.ex:618
 #, elixir-autogen, elixir-format
 msgid "non"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:625
+#: lib/kelescope_web/mcu_live.ex:626
 #, elixir-autogen, elixir-format
 msgid "obsolète (MCU redémarré)"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:605
-#: lib/kelescope_web/mcu_live.ex:617
+#: lib/kelescope_web/mcu_live.ex:606
+#: lib/kelescope_web/mcu_live.ex:618
 #, elixir-autogen, elixir-format
 msgid "oui"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:713
+#: lib/kelescope_web/mcu_live.ex:714
 #, elixir-autogen, elixir-format
 msgid "perdus"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:659
+#: lib/kelescope_web/mcu_live.ex:660
 #, elixir-autogen, elixir-format
 msgid "statistiques média"
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:624
-#: lib/kelescope_web/mcu_live.ex:657
+#: lib/kelescope_web/mcu_live.ex:625
+#: lib/kelescope_web/mcu_live.ex:658
 #, elixir-autogen, elixir-format
 msgid "état"
 msgstr ""
@@ -323,7 +323,7 @@ msgstr ""
 msgid "Plus aucun DID libre dans la plage de ce domaine : saisissez un DID."
 msgstr ""
 
-#: lib/kelescope_web/mcu_live.ex:781
+#: lib/kelescope_web/mcu_live.ex:782
 #, elixir-autogen, elixir-format
 msgid "vide : attribué dans la plage du domaine"
 msgstr ""

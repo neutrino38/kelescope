@@ -21,7 +21,7 @@ msgstr ""
 msgid "Ajouter une passkey"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:245
+#: lib/kelescope_web/admins_live.ex:246
 #, elixir-autogen, elixir-format
 msgid "Annuler"
 msgstr ""
@@ -66,7 +66,7 @@ msgstr ""
 msgid "Cette passkey ne pourra plus ouvrir de session."
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:159
+#: lib/kelescope_web/admins_live.ex:160
 #, elixir-autogen, elixir-format
 msgid "Code d'invitation de %{id}, affiché une seule fois :"
 msgstr ""
@@ -81,32 +81,32 @@ msgstr ""
 msgid "Comptes"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:153
+#: lib/kelescope_web/admins_live.ex:154
 #, elixir-autogen, elixir-format
 msgid "Comptes administrateurs"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:264
+#: lib/kelescope_web/admins_live.ex:265
 #, elixir-autogen, elixir-format
 msgid "Créer"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:251
+#: lib/kelescope_web/admins_live.ex:252
 #, elixir-autogen, elixir-format
 msgid "Créer un compte"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:182
+#: lib/kelescope_web/admins_live.ex:183
 #, elixir-autogen, elixir-format
 msgid "Dernière connexion"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:222
+#: lib/kelescope_web/admins_live.ex:223
 #, elixir-autogen, elixir-format
 msgid "Désactiver"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:243
+#: lib/kelescope_web/admins_live.ex:244
 #, elixir-autogen, elixir-format
 msgid "Enregistrer"
 msgstr ""
@@ -121,8 +121,8 @@ msgstr ""
 msgid "Expire le"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:177
-#: lib/kelescope_web/admins_live.ex:254
+#: lib/kelescope_web/admins_live.ex:178
+#: lib/kelescope_web/admins_live.ex:255
 #, elixir-autogen, elixir-format
 msgid "Identifiant"
 msgstr ""
@@ -152,7 +152,7 @@ msgstr ""
 msgid "Le certificat n'a pas pu être émis."
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:310
+#: lib/kelescope_web/admins_live.ex:311
 #, elixir-autogen, elixir-format
 msgid "Le compte, ses passkeys et ses postes disparaissent."
 msgstr ""
@@ -169,7 +169,7 @@ msgstr ""
 msgid "Libellé du poste"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:170
+#: lib/kelescope_web/admins_live.ex:171
 #, elixir-autogen, elixir-format
 msgid "Masquer"
 msgstr ""
@@ -190,12 +190,12 @@ msgstr ""
 msgid "Mot de passe du fichier, affiché une seule fois :"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:269
+#: lib/kelescope_web/admins_live.ex:270
 #, elixir-autogen, elixir-format
 msgid "Moyens d'accès de %{id}"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:323
+#: lib/kelescope_web/admins_live.ex:324
 #, elixir-autogen, elixir-format
 msgid "Niveau"
 msgstr ""
@@ -211,12 +211,12 @@ msgid "Passkey révoquée."
 msgstr ""
 
 #: lib/kelescope_web/account_live.ex:151
-#: lib/kelescope_web/admins_live.ex:180
+#: lib/kelescope_web/admins_live.ex:181
 #, elixir-autogen, elixir-format
 msgid "Passkeys"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:336
+#: lib/kelescope_web/admins_live.ex:337
 #, elixir-autogen, elixir-format
 msgid "Portée"
 msgstr ""
@@ -231,17 +231,17 @@ msgstr ""
 msgid "Poste révoqué."
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:181
+#: lib/kelescope_web/admins_live.ex:182
 #, elixir-autogen, elixir-format
 msgid "Postes"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:222
+#: lib/kelescope_web/admins_live.ex:223
 #, elixir-autogen, elixir-format
 msgid "Réactiver"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:212
+#: lib/kelescope_web/admins_live.ex:213
 #, elixir-autogen, elixir-format
 msgid "Réinitialiser"
 msgstr ""
@@ -255,8 +255,8 @@ msgstr ""
 #: lib/kelescope_web/account_live.ex:229
 #: lib/kelescope_web/account_live.ex:274
 #: lib/kelescope_web/account_live.ex:286
-#: lib/kelescope_web/admins_live.ex:280
-#: lib/kelescope_web/admins_live.ex:295
+#: lib/kelescope_web/admins_live.ex:281
+#: lib/kelescope_web/admins_live.ex:296
 #, elixir-autogen, elixir-format
 msgid "Révoquer"
 msgstr ""
@@ -271,58 +271,58 @@ msgstr ""
 msgid "Révoquer cette passkey"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:178
-#: lib/kelescope_web/admins_live.ex:204
+#: lib/kelescope_web/admins_live.ex:179
+#: lib/kelescope_web/admins_live.ex:205
 #, elixir-autogen, elixir-format
 msgid "Rôle"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:239
+#: lib/kelescope_web/admins_live.ex:240
 #, elixir-autogen, elixir-format
 msgid "Rôle de %{id}"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:231
-#: lib/kelescope_web/admins_live.ex:308
+#: lib/kelescope_web/admins_live.ex:232
+#: lib/kelescope_web/admins_live.ex:309
 #, elixir-autogen, elixir-format
 msgid "Supprimer"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:304
+#: lib/kelescope_web/admins_live.ex:305
 #, elixir-autogen, elixir-format
 msgid "Supprimer ce compte"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:165
+#: lib/kelescope_web/admins_live.ex:166
 #, elixir-autogen, elixir-format
 msgid "Valable %{hours} h. À transmettre par le canal de votre choix."
 msgstr ""
 
 #: lib/kelescope_web/account_live.ex:300
-#: lib/kelescope_web/admins_live.ex:191
+#: lib/kelescope_web/admins_live.ex:192
 #, elixir-autogen, elixir-format
 msgid "actif"
 msgstr ""
 
 #: lib/kelescope_web/account_live.ex:158
 #: lib/kelescope_web/account_live.ex:209
-#: lib/kelescope_web/admins_live.ex:183
+#: lib/kelescope_web/admins_live.ex:184
 #, elixir-autogen, elixir-format
 msgid "actions"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:330
-#: lib/kelescope_web/admins_live.ex:353
+#: lib/kelescope_web/admins_live.ex:331
+#: lib/kelescope_web/admins_live.ex:354
 #, elixir-autogen, elixir-format
 msgid "administrateur"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:344
+#: lib/kelescope_web/admins_live.ex:345
 #, elixir-autogen, elixir-format
 msgid "all ou domaines séparés par des virgules"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:191
+#: lib/kelescope_web/admins_live.ex:192
 #, elixir-autogen, elixir-format
 msgid "désactivé"
 msgstr ""
@@ -332,8 +332,8 @@ msgstr ""
 msgid "expiré"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:327
-#: lib/kelescope_web/admins_live.ex:354
+#: lib/kelescope_web/admins_live.ex:328
+#: lib/kelescope_web/admins_live.ex:355
 #, elixir-autogen, elixir-format
 msgid "moniteur"
 msgstr ""
@@ -358,7 +358,7 @@ msgstr ""
 msgid "révoqué"
 msgstr ""
 
-#: lib/kelescope_web/admins_live.ex:356
+#: lib/kelescope_web/admins_live.ex:357
 #, elixir-autogen, elixir-format
 msgid "tous domaines"
 msgstr ""
@@ -374,7 +374,7 @@ msgid "Émis le"
 msgstr ""
 
 #: lib/kelescope_web/account_live.ex:208
-#: lib/kelescope_web/admins_live.ex:179
+#: lib/kelescope_web/admins_live.ex:180
 #, elixir-autogen, elixir-format
 msgid "État"
 msgstr ""

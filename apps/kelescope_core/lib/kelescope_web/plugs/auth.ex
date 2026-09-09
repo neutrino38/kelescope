@@ -9,6 +9,8 @@ defmodule KelescopeWeb.Plugs.Auth do
   outside these pipelines would be public. `KelescopeWeb.Plugs.AuthTest` walks
   the router to catch that.
   """
+  use Gettext, backend: KelescopeWeb.Gettext
+
   import Plug.Conn
   import Phoenix.Controller, only: [redirect: 2, put_flash: 3]
 
@@ -56,7 +58,7 @@ defmodule KelescopeWeb.Plugs.Auth do
       conn
     else
       conn
-      |> put_flash(:error, "Cette page est réservée aux administrateurs généraux.")
+      |> put_flash(:error, gettext("Cette page est réservée aux administrateurs généraux."))
       |> redirect(to: "/")
       |> halt()
     end

@@ -11,104 +11,104 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/kelescope_web/domain_list_live.ex:297
+#: lib/kelescope_web/domain_list_live.ex:298
 #, elixir-autogen, elixir-format
 msgid "%{count} enregistrements"
 msgstr "%{count} registrations"
 
-#: lib/kelescope_web/domain_list_live.ex:291
+#: lib/kelescope_web/domain_list_live.ex:292
 #, elixir-autogen, elixir-format
 msgid "%{count} sessions actives"
 msgstr "%{count} active sessions"
 
-#: lib/kelescope_web/domain_list_live.ex:363
+#: lib/kelescope_web/domain_list_live.ex:364
 #, elixir-autogen, elixir-format
 msgid "(non activé)"
 msgstr "(not enabled)"
 
-#: lib/kelescope_web/domain_list_live.ex:249
+#: lib/kelescope_web/domain_list_live.ex:250
 #, elixir-autogen, elixir-format
 msgid "Aucun domaine servi."
 msgstr "No domain served."
 
-#: lib/kelescope_web/domain_list_live.ex:397
+#: lib/kelescope_web/domain_list_live.ex:398
 #, elixir-autogen, elixir-format
 msgid "Aucun enregistrement."
 msgstr "No registration."
 
-#: lib/kelescope_web/domain_list_live.ex:232
+#: lib/kelescope_web/domain_list_live.ex:233
 #, elixir-autogen, elixir-format
 msgid "Domaines"
 msgstr "Domains"
 
-#: lib/kelescope_web/domain_list_live.ex:266
-#: lib/kelescope_web/domain_list_live.ex:419
+#: lib/kelescope_web/domain_list_live.ex:267
+#: lib/kelescope_web/domain_list_live.ex:420
 #, elixir-autogen, elixir-format
 msgid "Désenregistrer"
 msgstr "Unregister"
 
-#: lib/kelescope_web/domain_list_live.ex:256
+#: lib/kelescope_web/domain_list_live.ex:257
 #, elixir-autogen, elixir-format
 msgid "Désenregistrer ce contact"
 msgstr "Unregister this contact"
 
-#: lib/kelescope_web/domain_list_live.ex:386
+#: lib/kelescope_web/domain_list_live.ex:387
 #, elixir-autogen, elixir-format
 msgid "Impossible de lire les enregistrements : %{reason}"
 msgstr "Unable to read registrations: %{reason}"
 
-#: lib/kelescope_web/domain_list_live.ex:234
+#: lib/kelescope_web/domain_list_live.ex:235
 #, elixir-autogen, elixir-format
 msgid "Rafraîchir"
 msgstr "Refresh"
 
-#: lib/kelescope_web/domain_list_live.ex:348
+#: lib/kelescope_web/domain_list_live.ex:349
 #, elixir-autogen, elixir-format
 msgid "Recharger les scénarios du domaine"
 msgstr "Reload the domain's scenarios"
 
-#: lib/kelescope_web/domain_list_live.ex:268
+#: lib/kelescope_web/domain_list_live.ex:269
 #, elixir-autogen, elixir-format
 msgid "contact"
 msgstr "contact"
 
-#: lib/kelescope_web/domain_list_live.ex:336
+#: lib/kelescope_web/domain_list_live.ex:337
 #, elixir-autogen, elixir-format
 msgid "défaut"
 msgstr "default"
 
-#: lib/kelescope_web/domain_list_live.ex:429
+#: lib/kelescope_web/domain_list_live.ex:430
 #, elixir-autogen, elixir-format
 msgid "erreur : %{reason}"
 msgstr "error: %{reason}"
 
-#: lib/kelescope_web/domain_list_live.ex:405
+#: lib/kelescope_web/domain_list_live.ex:406
 #, elixir-autogen, elixir-format
 msgid "expire dans (s)"
 msgstr "expires in (s)"
 
-#: lib/kelescope_web/domain_list_live.ex:335
+#: lib/kelescope_web/domain_list_live.ex:336
 #, elixir-autogen, elixir-format
 msgid "motif"
 msgstr "pattern"
 
-#: lib/kelescope_web/domain_list_live.ex:370
+#: lib/kelescope_web/domain_list_live.ex:371
 #, elixir-autogen, elixir-format
 msgid "non chargé"
 msgstr "not loaded"
 
-#: lib/kelescope_web/domain_list_live.ex:342
-#: lib/kelescope_web/domain_list_live.ex:372
+#: lib/kelescope_web/domain_list_live.ex:343
+#: lib/kelescope_web/domain_list_live.ex:373
 #, elixir-autogen, elixir-format
 msgid "obsolète"
 msgstr "outdated"
 
-#: lib/kelescope_web/domain_list_live.ex:342
+#: lib/kelescope_web/domain_list_live.ex:343
 #, elixir-autogen, elixir-format
 msgid "à jour"
 msgstr "up to date"
 
-#: lib/kelescope_web/domain_list_live.ex:341
+#: lib/kelescope_web/domain_list_live.ex:342
 #, elixir-autogen, elixir-format
 msgid "état"
 msgstr "status"

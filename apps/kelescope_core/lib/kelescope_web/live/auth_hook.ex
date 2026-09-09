@@ -6,6 +6,8 @@ defmodule KelescopeWeb.AuthHook do
   workstation or a disabled account closes the open live session instead of
   waiting for the next mount.
   """
+  use Gettext, backend: KelescopeWeb.Gettext
+
   import Phoenix.Component, only: [assign: 3]
   import Phoenix.LiveView
 
@@ -93,7 +95,9 @@ defmodule KelescopeWeb.AuthHook do
 
         {:error, _reason} ->
           {:halt,
-           socket |> put_flash(:error, "Votre accès a été révoqué.") |> redirect(to: "/login")}
+           socket
+           |> put_flash(:error, gettext("Votre accès a été révoqué."))
+           |> redirect(to: "/login")}
       end
     else
       {:halt, socket}

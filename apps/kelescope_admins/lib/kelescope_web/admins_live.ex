@@ -148,6 +148,7 @@ defmodule KelescopeWeb.AdminsLive do
   def render(assigns) do
     ~H"""
     <.nav current={:admins} locale={@locale} scope={@current_scope} />
+    <Layouts.flash_group flash={@flash} />
 
     <div class="mx-auto max-w-5xl space-y-6 p-6">
       <h1 class="text-lg font-semibold">{gettext("Comptes administrateurs")}</h1>

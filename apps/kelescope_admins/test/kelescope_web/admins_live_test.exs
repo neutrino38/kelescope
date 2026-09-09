@@ -122,6 +122,15 @@ defmodule KelescopeWeb.AdminsLiveTest do
              "You cannot delete your own account."
   end
 
+  test "shows a flash raised by the authentication layer", %{conn: conn} do
+    {:ok, _view, html} =
+      conn
+      |> Plug.Test.init_test_session(%{"phoenix_flash" => %{"error" => "Accès coupé"}})
+      |> live(~p"/admins")
+
+    assert html =~ "Accès coupé"
+  end
+
   test "refuses to delete one's own account", %{conn: conn, admin: admin} do
     # A second global administrator, so the refusal can only come from the
     # self-deletion rule and not from the last-global-admin invariant.
