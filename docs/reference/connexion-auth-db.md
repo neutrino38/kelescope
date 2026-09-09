@@ -41,9 +41,11 @@ Trois échecs se lisent différemment à l'écran :
 Le détail nomme l'hôte, le port, la base et son utilisateur. C'est de la
 configuration d'infrastructure.
 
-- Portée `all` : tous les champs que le module rapporte.
+- Portée `all` : tous les champs que le module rapporte. Ils vivent dans une
+  section dépliable, repliée à l'arrivée sur la page. Le résumé, lui, reste
+  toujours visible.
 - Portée limitée à des domaines : seulement connectée, déconnectée, ou état
-  inconnu.
+  inconnu. Aucune section à déplier, puisqu'il n'y a rien derrière.
 
 ## La forme rapportée
 
