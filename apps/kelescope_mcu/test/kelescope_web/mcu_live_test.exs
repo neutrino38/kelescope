@@ -6,7 +6,27 @@ defmodule KelescopeWeb.McuLiveTest do
 
   setup %{conn: conn} do
     admin = admin_fixture(:admin, :all)
+    await_push!()
     %{conn: log_in(conn, admin), admin: admin}
+  end
+
+  # Another test file taking the `Kelix.Control` double over kills the pid the
+  # link monitors as its subscription owner. It reconnects on its own timer, and
+  # these tests are about what the push does — so they wait for it rather than
+  # silently asserting against the polling fallback.
+  defp await_push!(tries \\ 200)
+
+  defp await_push!(0), do: raise("ConferencesLink never regained the push contract")
+
+  defp await_push!(tries) do
+    case Kelescope.Kelixip.ConferencesLink.snapshot() do
+      {_status, :push, _rows} ->
+        :ok
+
+      _otherwise ->
+        Process.sleep(10)
+        await_push!(tries - 1)
+    end
   end
 
   test "sert la page en anglais, socle et partie, quand la session le demande", %{conn: conn} do
@@ -96,10 +116,14 @@ defmodule KelescopeWeb.McuLiveTest do
     {:ok, view, _html} = live(conn, ~p"/mcu")
 
     html = view |> element("[phx-click=toggle]", "board-review") |> render_click()
-
     assert html =~ "statistiques média"
+
+    # The first sample of a fresh subscription is swept on the spot node-side,
+    # but it still arrives as a push rather than in the subscribe reply.
+    html = settle(view)
     assert html =~ "audio: ↓"
     assert html =~ "video: ↓"
+    assert html =~ "kb/s"
   end
 
   test "the new-conference form offers domains as a dropdown", %{conn: conn} do
@@ -129,6 +153,8 @@ defmodule KelescopeWeb.McuLiveTest do
     view
     |> form("#create-conference-modal-form")
     |> render_submit()
+
+    settle(view)
 
     html = view |> element("[phx-click=toggle]", "temp-did-conf") |> render_click()
 
@@ -205,12 +231,8 @@ defmodule KelescopeWeb.McuLiveTest do
     create_log =
       try do
         capture_log(fn ->
-          html =
-            view
-            |> form("#create-conference-modal-form")
-            |> render_submit()
-
-          assert html =~ "temp-e2e-conf"
+          view |> form("#create-conference-modal-form") |> render_submit()
+          assert settle(view) =~ "temp-e2e-conf"
         end)
       after
         Logger.configure(level: previous_level)
@@ -231,12 +253,8 @@ defmodule KelescopeWeb.McuLiveTest do
         Logger.configure(level: :info)
 
         capture_log(fn ->
-          html =
-            view
-            |> form("#delete-conference-modal-form")
-            |> render_submit()
-
-          refute html =~ "temp-e2e-conf"
+          view |> form("#delete-conference-modal-form") |> render_submit()
+          refute settle(view) =~ "temp-e2e-conf"
         end)
       after
         Logger.configure(level: previous_level)
@@ -282,6 +300,8 @@ defmodule KelescopeWeb.McuLiveTest do
     |> form("#create-conference-modal-form")
     |> render_submit()
 
+    settle(view)
+
     html = view |> element("[phx-click=toggle]", "temp-props-conf") |> render_click()
     uid = uid_from_detail(html)
 
@@ -296,6 +316,8 @@ defmodule KelescopeWeb.McuLiveTest do
         "layout_comp" => "2"
       })
       |> render_submit()
+
+    html = settle(view)
 
     assert html =~ "temp-props-conf-renamed"
   end
@@ -320,6 +342,8 @@ defmodule KelescopeWeb.McuLiveTest do
     view
     |> form("#create-conference-modal-form")
     |> render_submit()
+
+    settle(view)
 
     html = view |> element("[phx-click=toggle]", "temp-video-conf") |> render_click()
 
@@ -347,6 +371,8 @@ defmodule KelescopeWeb.McuLiveTest do
     |> form("#create-conference-modal-form")
     |> render_submit()
 
+    settle(view)
+
     html = view |> element("[phx-click=toggle]", "temp-video-props-conf") |> render_click()
     uid = uid_from_detail(html)
 
@@ -364,6 +390,8 @@ defmodule KelescopeWeb.McuLiveTest do
         "preferred_video_codec" => ""
       })
       |> render_submit()
+
+    html = settle(view)
 
     assert html =~ "2000 kb/s"
     assert html =~ "aucune préférence"
@@ -388,6 +416,8 @@ defmodule KelescopeWeb.McuLiveTest do
     |> form("#create-conference-modal-form")
     |> render_submit()
 
+    settle(view)
+
     html = view |> element("[phx-click=toggle]", "temp-vad-conf") |> render_click()
     uid = uid_from_detail(html)
 
@@ -404,6 +434,8 @@ defmodule KelescopeWeb.McuLiveTest do
         "layout_auto" => "false"
       })
       |> render_submit()
+
+    html = settle(view)
 
     assert html =~ "none"
 
@@ -433,6 +465,8 @@ defmodule KelescopeWeb.McuLiveTest do
     |> form("#create-conference-modal-form")
     |> render_submit()
 
+    settle(view)
+
     html = view |> element("[phx-click=toggle]", "temp-extra-conf") |> render_click()
     uid = uid_from_detail(html)
 
@@ -454,6 +488,8 @@ defmodule KelescopeWeb.McuLiveTest do
         "logo" => "new-logo.png"
       })
       |> render_submit()
+
+    html = settle(view)
 
     assert html =~ "48 kHz"
     assert html =~ "audio, video"
@@ -479,6 +515,8 @@ defmodule KelescopeWeb.McuLiveTest do
     |> form("#create-conference-modal-form")
     |> render_submit()
 
+    settle(view)
+
     html = view |> element("[phx-click=toggle]", "temp-medias-conf") |> render_click()
     uid = uid_from_detail(html)
 
@@ -496,6 +534,8 @@ defmodule KelescopeWeb.McuLiveTest do
         "media_text" => "false"
       })
       |> render_submit()
+
+    html = settle(view)
 
     assert html =~ "audio, video, text"
   end
@@ -545,6 +585,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view |> form("#create-conference-modal-form") |> render_submit()
+    settle(view)
 
     html = view |> element("[phx-click=toggle]", "temp-mosaic-conf") |> render_click()
     uid = uid_from_detail(html)
@@ -577,50 +618,364 @@ defmodule KelescopeWeb.McuLiveTest do
     |> form("#create-conference-modal-form")
     |> render_submit()
 
+    settle(view)
+
     html = view |> element("[phx-click=toggle]", "temp-rec-conf") |> render_click()
     uid = uid_from_detail(html)
 
     assert html =~ "Démarrer l&#39;enregistrement"
 
-    html =
-      view
-      |> element("button[phx-value-uid='#{uid}'][phx-click='start_recording']")
-      |> render_click()
+    view
+    |> element("button[phx-value-uid='#{uid}'][phx-click='start_recording']")
+    |> render_click()
 
+    html = settle(view)
     assert html =~ "Enregistrement en cours"
     assert html =~ "Arrêter l&#39;enregistrement"
 
-    html =
-      view
-      |> element("button[phx-value-uid='#{uid}'][phx-click='stop_recording']")
-      |> render_click()
+    view
+    |> element("button[phx-value-uid='#{uid}'][phx-click='stop_recording']")
+    |> render_click()
 
-    assert html =~ "Démarrer l&#39;enregistrement"
+    assert settle(view) =~ "Démarrer l&#39;enregistrement"
   end
 
-  test "a conference list pushed by the poller is reflected without a manual refresh", %{
-    conn: conn
-  } do
+  test "a conference created elsewhere appears without any interaction", %{conn: conn} do
     {:ok, view, html} = live(conn, ~p"/mcu")
     refute html =~ "pushed-conf"
 
+    # Nobody touches the page: the conference is created straight on the node,
+    # as another operator or kelictl would.
+    {:ok, %{uid: uid}} =
+      Kelix.Control.module_command("mcu", "conference.create", %{
+        "domain" => "example.com",
+        "name" => "pushed-conf"
+      })
+
+    assert settle(view) =~ "pushed-conf"
+
+    {:ok, _} = Kelix.Control.module_command("mcu", "conference.delete", %{"uid" => uid})
+    refute settle(view) =~ "pushed-conf"
+  end
+
+  test "the list has no refresh button while the node pushes", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    html = view |> element("[phx-click=toggle]", "standup") |> render_click()
+
+    refute html =~ "refresh_detail"
+  end
+
+  test "a roster change pushes the whole roster into the expanded panel", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+    uid = create_conference!(view, "temp-roster-conf")
+
+    html = view |> element("[phx-click=toggle]", "temp-roster-conf") |> render_click()
+    refute html =~ "sip:dave@example.com"
+
+    :ok =
+      Kelix.Control.set_participants(uid, [
+        %{
+          part_id: 9,
+          name: "dave",
+          from: "sip:dave@example.com",
+          state: :connected,
+          medias: [:audio],
+          joined_at: ~U[2026-09-09 10:00:00Z]
+        }
+      ])
+
+    html = settle(view)
+    assert html =~ "sip:dave@example.com"
+    refute html =~ "Aucun participant."
+  end
+
+  test "a leg still ringing is shown as such, with no statistics", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+    uid = create_conference!(view, "temp-ringing-conf")
+
+    view |> element("[phx-click=toggle]", "temp-ringing-conf") |> render_click()
+
+    :ok =
+      Kelix.Control.set_participants(uid, [
+        %{
+          part_id: nil,
+          name: "erin",
+          from: "sip:erin@example.com",
+          state: :ringing,
+          medias: [:audio],
+          joined_at: nil
+        }
+      ])
+
+    assert settle(view) =~ "en sonnerie"
+  end
+
+  test "a leg the sweep could not read reads as no answer, and the others still show", %{
+    conn: conn
+  } do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+    uid = create_conference!(view, "temp-stats-error-conf")
+
+    :ok =
+      Kelix.Control.set_participants(uid, [
+        %{
+          part_id: 1,
+          name: "alice",
+          from: "sip:alice@stats.test",
+          state: :connected,
+          medias: [:audio],
+          joined_at: ~U[2026-09-09 10:00:00Z]
+        },
+        %{
+          part_id: 2,
+          name: "bob",
+          from: "sip:bob@stats.test",
+          state: :connected,
+          medias: [:audio],
+          joined_at: ~U[2026-09-09 10:00:00Z]
+        }
+      ])
+
+    view |> element("[phx-click=toggle]", "temp-stats-error-conf") |> render_click()
+
+    Kelix.Control.push_stats(uid, %{
+      at: ~U[2026-09-09 10:00:00Z],
+      mcu: "ms1",
+      interval_ms: 15_000,
+      participants: [
+        %{
+          part_id: 1,
+          name: "alice",
+          state: :connected,
+          since_ms: 15_000,
+          stats: %{},
+          stats_error: :timeout
+        },
+        %{
+          part_id: 2,
+          name: "bob",
+          state: :connected,
+          since_ms: 15_000,
+          stats: %{
+            audio: %{
+              receiving: true,
+              sending: true,
+              num_recv_packets: 4200,
+              num_send_packets: 4100,
+              total_recv_bytes: 840_000,
+              total_send_bytes: 820_000,
+              lost_recv_packets: 0,
+              recv_kbps: 448,
+              send_kbps: 437,
+              lost_recv_delta: 0
+            }
+          },
+          stats_error: nil
+        }
+      ]
+    })
+
+    html = settle(view)
+    assert html =~ "pas de réponse"
+    assert html =~ "audio: ↓4200p"
+  end
+
+  test "a sample far older than its own interval is flagged as ageing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+    uid = create_conference!(view, "temp-ageing-conf")
+
+    :ok =
+      Kelix.Control.set_participants(uid, [
+        %{
+          part_id: 1,
+          name: "alice",
+          from: "sip:alice@ageing.test",
+          state: :connected,
+          medias: [:audio],
+          joined_at: ~U[2026-09-09 10:00:00Z]
+        }
+      ])
+
+    view |> element("[phx-click=toggle]", "temp-ageing-conf") |> render_click()
+
+    Kelix.Control.push_stats(uid, %{
+      at: ~U[2026-09-09 10:00:00Z],
+      mcu: "ms1",
+      interval_ms: 15_000,
+      participants: [
+        %{
+          part_id: 1,
+          name: "alice",
+          state: :connected,
+          since_ms: 61_000,
+          stats: %{
+            audio: %{
+              receiving: true,
+              sending: true,
+              num_recv_packets: 10,
+              num_send_packets: 10,
+              total_recv_bytes: 100,
+              total_send_bytes: 100,
+              lost_recv_packets: 0,
+              recv_kbps: 1,
+              send_kbps: 1,
+              lost_recv_delta: 0
+            }
+          },
+          stats_error: nil
+        }
+      ]
+    })
+
+    assert settle(view) =~ "chiffres vieillissants"
+  end
+
+  test "applying the same push twice changes nothing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    row = %{
+      uid: "c-standup",
+      name: "standup",
+      domain: "example.com",
+      mcu: "ms1",
+      layout: %{comp: 1, size: 6, auto: true},
+      recording: nil,
+      participants: 2
+    }
+
+    send(view.pid, {:kelix_conferences, {:upsert, row}})
+    once = render(view)
+    send(view.pid, {:kelix_conferences, {:upsert, row}})
+
+    assert render(view) == once
+  end
+
+  test "a removal naming a conference this page never saw is ignored", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+    before = render(view)
+
+    send(view.pid, {:kelix_conferences, {:remove, "c-never-seen"}})
+
+    assert render(view) == before
+  end
+
+  test "a conference snapshot arriving before its list entry is not lost", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    view |> element("[phx-click=toggle]", "standup") |> render_click()
+
+    # No order holds across topics: the roster may land before the row.
     send(
       view.pid,
-      {:kelixip_conferences,
-       [
-         %{
-           uid: "c-pushed",
-           name: "pushed-conf",
-           domain: "example.com",
-           mcu: "ms1",
-           layout: %{comp: 1, size: 6, auto: true},
-           recording: nil,
-           participants: 0
-         }
-       ]}
+      {:kelix_conference, "c-standup",
+       {:snapshot,
+        %{
+          conference: %{
+            uid: "c-standup",
+            name: "standup",
+            domain: "example.com",
+            did: "+33970260240",
+            mcu: "ms1",
+            conf_id: 101,
+            vad: 1,
+            rate: 32_000,
+            medias: [:audio],
+            dtmf: true,
+            video: %{size: 6, fps: 30, bitrate: 1500, intra_period: 300},
+            preferred_video_codec: "H264",
+            layout: %{comp: 1, size: 6, auto: true},
+            max_participants: 20,
+            destroy_when_empty: false,
+            persistent: true,
+            created_at: ~U[2026-09-01 09:00:00Z],
+            stale: false,
+            logo: nil,
+            recording: nil,
+            participants: 1
+          },
+          participants: [
+            %{
+              part_id: 42,
+              name: "zoe",
+              from: "sip:zoe@example.com",
+              state: :connected,
+              medias: [:audio],
+              joined_at: ~U[2026-09-09 11:00:00Z]
+            }
+          ]
+        }}}
     )
 
-    assert render(view) =~ "pushed-conf"
+    assert render(view) =~ "sip:zoe@example.com"
+  end
+
+  test "collapsing a row releases both of its subscriptions", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    view |> element("[phx-click=toggle]", "standup") |> render_click()
+    assert held?("c-standup")
+
+    view |> element("[phx-click=toggle]", "standup") |> render_click()
+    refute held?("c-standup")
+  end
+
+  test "a destroyed conference closes its expanded panel", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    view |> element("button", "Nouvelle conférence") |> render_click()
+
+    view
+    |> form("form[phx-submit='submit_conference_form']", %{
+      "domain" => "example.com",
+      "name" => "temp-destroyed-conf"
+    })
+    |> render_submit()
+
+    view |> form("#create-conference-modal-form") |> render_submit()
+    settle(view)
+
+    html = view |> element("[phx-click=toggle]", "temp-destroyed-conf") |> render_click()
+    uid = uid_from_detail(html)
+    assert held?(uid)
+
+    {:ok, _} = Kelix.Control.module_command("mcu", "conference.delete", %{"uid" => uid})
+
+    html = settle(view)
+    refute html =~ "temp-destroyed-conf"
+    refute held?(uid)
+  end
+
+  # A conference of this test's own, created straight on the node: mutating a
+  # shared fixture would decide the outcome of whichever test ExUnit's seed runs
+  # next.
+  defp create_conference!(view, name) do
+    {:ok, %{uid: uid}} =
+      Kelix.Control.module_command("mcu", "conference.create", %{
+        "domain" => "example.com",
+        "name" => name
+      })
+
+    # The page learns of it through the list push, not through this call.
+    settle(view)
+    uid
+  end
+
+  # Reads the link's own bookkeeping: the subscriptions the node is still being
+  # asked to serve on kelescope's behalf.
+  defp held?(uid) do
+    holds = :sys.get_state(Kelescope.Kelixip.ConferencesLink).holds
+    Map.has_key?(holds, {:conference, uid}) and Map.has_key?(holds, {:stats, uid})
+  end
+
+  # Under the push contract an action's effect no longer comes back with the
+  # click: it travels kelixip → link → view. Draining the link's mailbox proves
+  # its broadcast is out, which puts it ahead of this render in the view's own
+  # mailbox — so this waits for the push instead of sleeping on a guess.
+  defp settle(view) do
+    :sys.get_state(Kelix.Control)
+    :sys.get_state(Kelescope.Kelixip.ConferencesLink)
+    render(view)
   end
 
   defp uid_from_detail(html) do
@@ -638,19 +993,17 @@ defmodule KelescopeWeb.McuLiveTest do
 
       refute html =~ "standup"
 
-      pushed = [
-        %{
-          uid: "c-pushed",
-          name: "standup",
-          domain: "example.com",
-          mcu: "ms1",
-          participants: 0,
-          layout: %{comp: 1},
-          recording: nil
-        }
-      ]
+      pushed = %{
+        uid: "c-pushed",
+        name: "standup",
+        domain: "example.com",
+        mcu: "ms1",
+        participants: 0,
+        layout: %{comp: 1},
+        recording: nil
+      }
 
-      send(view.pid, {:kelixip_conferences, pushed})
+      send(view.pid, {:kelix_conferences, {:upsert, pushed}})
       refute render(view) =~ "standup"
     end
 

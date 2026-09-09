@@ -123,7 +123,7 @@ config :kelescope_core, Kelescope.Kelixip.DomainsLink,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")
 
-config :kelescope_mcu, Kelescope.Kelixip.ConferencesPoller,
+config :kelescope_mcu, Kelescope.Kelixip.ConferencesLink,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")
 

@@ -81,7 +81,7 @@ Quatre applications, alignées sur les frontières déjà présentes dans le cod
 | `kelescope_core` | Endpoint, Router, Layouts, CoreComponents, Gettext, Telemetry, Error\*, Locale\*, `Kelixip.Link`, `Kelixip.DomainsLink`, tous les assets |
 | `kelescope_monitor` | `ScenarioMonitorLive`, `StatusPoller` |
 | `kelescope_domaines` | `DomainListLive` |
-| `kelescope_mcu` | `McuLive`, `ConferencesPoller` |
+| `kelescope_mcu` | `McuLive`, `ConferencesLink` |
 
 Les versions OTP de ces applications sont **figées**. Elles valent un numéro
 d'ABI, c'est-à-dire un numéro de contrat interne entre le socle et les parties.

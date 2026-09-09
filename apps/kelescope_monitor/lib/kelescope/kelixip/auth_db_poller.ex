@@ -8,7 +8,7 @@ defmodule Kelescope.Kelixip.AuthDbPoller do
   connection. The state lives behind the module's own control command, the one
   `kelictl auth_db show` reaches.
 
-  Unlike `StatusPoller` and `ConferencesPoller`, this one publishes its
+  Unlike `StatusPoller`, this one publishes its
   failures too. A connection state that kept showing the last success after
   the module stopped answering would be a lie, and this page exists to tell
   the truth about a connection.

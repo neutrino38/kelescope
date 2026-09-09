@@ -2,6 +2,7 @@ defmodule KelescopeWeb.McuLive do
   use KelescopeWeb, {:live_view, KelescopeWeb.Mcu.Gettext}
 
   alias Kelescope.Auth.Scope
+  alias Kelescope.Kelixip.ConferencesLink
   alias Kelescope.Kelixip.Control
   alias Kelescope.Kelixip.Link
 
@@ -53,18 +54,24 @@ defmodule KelescopeWeb.McuLive do
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
-      Phoenix.PubSub.subscribe(Kelescope.PubSub, "kelixip:conferences")
+      Phoenix.PubSub.subscribe(Kelescope.PubSub, ConferencesLink.conferences_topic())
+      Phoenix.PubSub.subscribe(Kelescope.PubSub, ConferencesLink.link_topic())
     end
 
     {_status, domains} = Kelescope.Kelixip.DomainsLink.snapshot()
+    {_conf_status, mode, conferences} = ConferencesLink.snapshot()
 
     scope = socket.assigns.current_scope
 
     {:ok,
      assign(socket,
-       conferences: visible(Kelescope.Kelixip.ConferencesPoller.snapshot(), scope),
+       conferences: visible(conferences, scope),
+       push?: mode == :push,
        expanded: nil,
        detail: nil,
+       stats_entries: %{},
+       stats_sample: nil,
+       stats_disabled?: false,
        form_mode: nil,
        form_error: nil,
        form_params: %{},
@@ -82,14 +89,14 @@ defmodule KelescopeWeb.McuLive do
   @impl true
   def handle_event("toggle", %{"uid" => uid}, socket) do
     if socket.assigns.expanded == uid do
-      {:noreply, assign(socket, expanded: nil, detail: nil)}
+      {:noreply, collapse(socket)}
     else
-      {:noreply, assign(socket, expanded: uid, detail: fetch_conference(uid))}
+      {:noreply, socket |> collapse() |> expand(uid)}
     end
   end
 
   def handle_event("refresh_detail", %{"uid" => uid}, socket) do
-    {:noreply, assign(socket, :detail, fetch_conference(uid))}
+    {:noreply, refresh_detail(socket, uid)}
   end
 
   def handle_event("new_conference", _params, socket) do
@@ -175,7 +182,7 @@ defmodule KelescopeWeb.McuLive do
     socket =
       case may?(socket, uid) && Control.start_recording(Link.target_node(), uid) do
         false -> assign(socket, :error, forbidden_message())
-        {:ok, _} -> socket |> assign(detail: fetch_conference(uid), error: nil) |> refresh_list()
+        {:ok, _} -> socket |> assign(:error, nil) |> refresh_detail(uid) |> refresh_list()
         {:error, reason} -> assign(socket, :error, recording_error_message(reason))
       end
 
@@ -186,7 +193,7 @@ defmodule KelescopeWeb.McuLive do
     socket =
       case may?(socket, uid) && Control.stop_recording(Link.target_node(), uid) do
         false -> assign(socket, :error, forbidden_message())
-        {:ok, _} -> socket |> assign(detail: fetch_conference(uid), error: nil) |> refresh_list()
+        {:ok, _} -> socket |> assign(:error, nil) |> refresh_detail(uid) |> refresh_list()
         {:error, reason} -> assign(socket, :error, recording_error_message(reason))
       end
 
@@ -194,9 +201,166 @@ defmodule KelescopeWeb.McuLive do
   end
 
   @impl true
-  def handle_info({:kelixip_conferences, conferences}, socket) do
+  def handle_info({:kelixip_conferences_link, mode}, socket) do
+    {:noreply, assign(socket, :push?, mode == :push)}
+  end
+
+  def handle_info({:kelix_conferences, {:snapshot, conferences}}, socket) do
     {:noreply, assign(socket, :conferences, visible(conferences, socket.assigns.current_scope))}
   end
+
+  def handle_info({:kelix_conferences, {:upsert, row}}, socket) do
+    if Scope.sees_domain?(socket.assigns.current_scope, Map.get(row, :domain)) do
+      {:noreply, assign(socket, :conferences, upsert_row(socket.assigns.conferences, row))}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  def handle_info({:kelix_conferences, {:remove, uid}}, socket) do
+    rows = socket.assigns.conferences && Enum.reject(socket.assigns.conferences, &(&1.uid == uid))
+    {:noreply, socket |> assign(:conferences, rows) |> maybe_clear_expanded(uid)}
+  end
+
+  # A conference topic outlives its unsubscribe by whatever is already in the
+  # mailbox, and the two topics have no order between them: anything that does
+  # not name the expanded row is not ours to apply.
+  def handle_info(
+        {:kelix_conference, uid, {:snapshot, detail}},
+        %{assigns: %{expanded: uid}} = socket
+      ) do
+    {:noreply, assign(socket, :detail, {:ok, merge_detail(detail)})}
+  end
+
+  def handle_info({:kelix_conference, uid, :destroyed}, %{assigns: %{expanded: uid}} = socket) do
+    {:noreply, collapse(socket)}
+  end
+
+  def handle_info({:kelix_conference, _uid, _payload}, socket), do: {:noreply, socket}
+
+  def handle_info({:kelix_conference_stats, uid, sample}, %{assigns: %{expanded: uid}} = socket) do
+    {:noreply, assign_sample(socket, sample)}
+  end
+
+  def handle_info({:kelix_conference_stats, _uid, _sample}, socket), do: {:noreply, socket}
+
+  @impl true
+  def terminate(_reason, socket) do
+    # Dropping the holds here is what stops a statistics sweep nobody reads.
+    # At shutdown the link may already be gone, and that is not an error worth
+    # logging on every open page: kelixip drops a dead subscriber on its own
+    # monitor anyway.
+    collapse(socket)
+  catch
+    :exit, _reason -> :ok
+  end
+
+  # Expanding takes a hold on the conference and its statistics; collapsing
+  # drops both. The statistics sweep costs the media server an RPC per leg
+  # every interval, so a hold left behind is a server-side cost nobody is
+  # reading — see docs/conception/phase4-mcu-push/SPEC.md.
+  defp expand(socket, uid) do
+    if socket.assigns.push? do
+      Phoenix.PubSub.subscribe(Kelescope.PubSub, ConferencesLink.conference_topic(uid))
+      Phoenix.PubSub.subscribe(Kelescope.PubSub, ConferencesLink.stats_topic(uid))
+
+      socket
+      |> assign(:expanded, uid)
+      |> assign(:detail, watch_detail(uid))
+      |> watch_stats(uid)
+    else
+      socket |> assign(:expanded, uid) |> refresh_detail(uid)
+    end
+  end
+
+  defp collapse(%{assigns: %{expanded: nil}} = socket), do: socket
+
+  defp collapse(%{assigns: %{expanded: uid}} = socket) do
+    if socket.assigns.push? do
+      ConferencesLink.unwatch_conference(uid)
+      ConferencesLink.unwatch_stats(uid)
+      Phoenix.PubSub.unsubscribe(Kelescope.PubSub, ConferencesLink.conference_topic(uid))
+      Phoenix.PubSub.unsubscribe(Kelescope.PubSub, ConferencesLink.stats_topic(uid))
+    end
+
+    assign(socket,
+      expanded: nil,
+      detail: nil,
+      stats_entries: %{},
+      stats_sample: nil,
+      stats_disabled?: false
+    )
+  end
+
+  defp watch_detail(uid) do
+    case ConferencesLink.watch_conference(uid) do
+      {:ok, detail} -> {:ok, merge_detail(detail)}
+      {:error, reason} -> {:error, reason}
+    end
+  end
+
+  defp watch_stats(socket, uid) do
+    case ConferencesLink.watch_stats(uid) do
+      # No sample yet: the node sweeps a fresh subscription on the spot, so one
+      # is on its way. An empty statistics column is right for that moment.
+      {:ok, %{sample: nil}} ->
+        assign(socket, stats_entries: %{}, stats_sample: nil, stats_disabled?: false)
+
+      {:ok, %{sample: sample}} ->
+        assign_sample(socket, sample)
+
+      {:error, :disabled} ->
+        assign(socket, stats_entries: %{}, stats_sample: nil, stats_disabled?: true)
+
+      {:error, _reason} ->
+        assign(socket, stats_entries: %{}, stats_sample: nil, stats_disabled?: false)
+    end
+  end
+
+  defp assign_sample(socket, sample) do
+    entries =
+      Map.new(sample.participants, fn p ->
+        {p.part_id,
+         %{
+           stats: Map.get(p, :stats, %{}),
+           stats_error: Map.get(p, :stats_error),
+           since_ms: Map.get(p, :since_ms)
+         }}
+      end)
+
+    assign(socket, stats_entries: entries, stats_sample: sample, stats_disabled?: false)
+  end
+
+  # `conference.show` puts the roster where the row carries a count; the push
+  # keeps them apart, so the two are joined back here and one component renders
+  # both paths.
+  defp merge_detail(%{conference: conf, participants: participants}),
+    do: Map.put(conf, :participants, participants)
+
+  defp upsert_row(nil, row), do: [row]
+
+  defp upsert_row(rows, row) do
+    if Enum.any?(rows, &(&1.uid == row.uid)),
+      do: Enum.map(rows, &if(&1.uid == row.uid, do: row, else: &1)),
+      else: rows ++ [row]
+  end
+
+  defp refresh_detail(%{assigns: %{push?: true}} = socket, _uid), do: socket
+
+  defp refresh_detail(socket, uid) do
+    detail = fetch_conference(uid)
+    assign(socket, detail: detail, stats_entries: polled_entries(detail))
+  end
+
+  # Polled, the statistics ride along with each participant (`participant.show`);
+  # pushed, they arrive as their own sample. One shape reaches the render.
+  defp polled_entries({:ok, conf}) do
+    Map.new(conf.participants, fn p ->
+      {p.part_id, %{stats: Map.get(p, :stats, %{}), stats_error: nil, since_ms: nil}}
+    end)
+  end
+
+  defp polled_entries(_detail), do: %{}
 
   defp fetch_conference(uid) do
     with {:ok, conf} <- Control.conference(Link.target_node(), uid) do
@@ -217,7 +381,8 @@ defmodule KelescopeWeb.McuLive do
       {:ok, _conf} ->
         {:noreply,
          socket
-         |> assign(form_mode: nil, form_error: nil, detail: fetch_conference(uid))
+         |> assign(form_mode: nil, form_error: nil)
+         |> refresh_detail(uid)
          |> refresh_list()}
 
       {:error, reason} ->
@@ -247,6 +412,10 @@ defmodule KelescopeWeb.McuLive do
 
   defp forbidden_message,
     do: gettext("Action refusée : ce domaine est hors de votre portée.")
+
+  # Under the push contract the node reports the change itself; re-reading the
+  # list here would only race it.
+  defp refresh_list(%{assigns: %{push?: true}} = socket), do: socket
 
   defp refresh_list(socket) do
     case Control.list_conferences(Link.target_node()) do
@@ -279,8 +448,7 @@ defmodule KelescopeWeb.McuLive do
     Scope.can?(socket.assigns.current_scope, :conference, conference_domain(socket, uid))
   end
 
-  defp maybe_clear_expanded(%{assigns: %{expanded: uid}} = socket, uid),
-    do: assign(socket, expanded: nil, detail: nil)
+  defp maybe_clear_expanded(%{assigns: %{expanded: uid}} = socket, uid), do: collapse(socket)
 
   defp maybe_clear_expanded(socket, _uid), do: socket
 
@@ -481,6 +649,10 @@ defmodule KelescopeWeb.McuLive do
           scope={@current_scope}
           expanded={@expanded == c.uid}
           detail={if @expanded == c.uid, do: @detail}
+          push?={@push?}
+          stats_entries={@stats_entries}
+          stats_sample={@stats_sample}
+          stats_disabled?={@stats_disabled?}
         />
         <p :if={@conferences == []} class="p-3 text-sm text-base-content/70">
           {gettext("Aucune conférence.")}
@@ -530,6 +702,10 @@ defmodule KelescopeWeb.McuLive do
   attr :expanded, :boolean, required: true
   attr :detail, :any, default: nil
   attr :scope, :map, required: true
+  attr :push?, :boolean, required: true
+  attr :stats_entries, :map, default: %{}
+  attr :stats_sample, :any, default: nil
+  attr :stats_disabled?, :boolean, default: false
 
   defp conference_row(assigns) do
     ~H"""
@@ -564,6 +740,10 @@ defmodule KelescopeWeb.McuLive do
         :if={@expanded}
         detail={@detail}
         may_act={Scope.can?(@scope, :conference, Map.get(@conf, :domain))}
+        push?={@push?}
+        stats_entries={@stats_entries}
+        stats_sample={@stats_sample}
+        stats_disabled?={@stats_disabled?}
       />
     </div>
     """
@@ -571,6 +751,10 @@ defmodule KelescopeWeb.McuLive do
 
   attr :detail, :any, default: nil
   attr :may_act, :boolean, default: false
+  attr :push?, :boolean, default: false
+  attr :stats_entries, :map, default: %{}
+  attr :stats_sample, :any, default: nil
+  attr :stats_disabled?, :boolean, default: false
 
   defp conference_detail(%{detail: nil} = assigns) do
     ~H"""
@@ -658,15 +842,32 @@ defmodule KelescopeWeb.McuLive do
         <:col :let={p} label={gettext("état")}>{p.state}</:col>
         <:col :let={p} label={gettext("depuis")}>{p.joined_at || "-"}</:col>
         <:col :let={p} label={gettext("statistiques média")}>
-          <.participant_stats stats={Map.get(p, :stats, %{})} />
+          <.participant_stats
+            entry={Map.get(@stats_entries, p.part_id)}
+            ringing?={is_nil(p.part_id)}
+            interval_ms={@stats_sample && @stats_sample.interval_ms}
+          />
         </:col>
       </.table>
       <p :if={@full.participants == []} class="text-sm text-base-content/70">
         {gettext("Aucun participant.")}
       </p>
 
+      <p :if={@stats_disabled?} class="mt-1 text-xs text-base-content/70">
+        {gettext("Statistiques média désactivées sur ce nœud.")}
+      </p>
+      <p :if={@stats_sample} class="mt-1 text-xs text-base-content/70">
+        {gettext("Échantillon du %{at}", at: @stats_sample.at)}
+      </p>
+
       <div class="mt-3 flex gap-2">
-        <button type="button" phx-click="refresh_detail" phx-value-uid={@full.uid} class="btn btn-xs">
+        <button
+          :if={not @push?}
+          type="button"
+          phx-click="refresh_detail"
+          phx-value-uid={@full.uid}
+          class="btn btn-xs"
+        >
           {gettext("Rafraîchir")}
         </button>
         <button
@@ -697,26 +898,59 @@ defmodule KelescopeWeb.McuLive do
     """
   end
 
-  attr :stats, :map, required: true
+  attr :entry, :any, default: nil
+  attr :ringing?, :boolean, default: false
+  attr :interval_ms, :any, default: nil
 
-  defp participant_stats(%{stats: stats} = assigns) when map_size(stats) == 0 do
+  # A leg still ringing has no MCU-side participant to ask about: it carries no
+  # part_id, so "no statistics" here is the answer and not a failure.
+  defp participant_stats(%{ringing?: true} = assigns) do
+    ~H"""
+    <span class="text-base-content/50">{gettext("en sonnerie")}</span>
+    """
+  end
+
+  defp participant_stats(%{entry: nil} = assigns) do
     ~H"""
     <span class="text-base-content/50">-</span>
+    """
+  end
+
+  # "No answer" must never read as "no media": an operator seeing zeros has to
+  # be able to tell a silent leg from an unread one.
+  defp participant_stats(%{entry: %{stats_error: error}} = assigns) when not is_nil(error) do
+    ~H"""
+    <span class="text-xs text-warning" title={inspect(@entry.stats_error)}>
+      {gettext("pas de réponse")}
+    </span>
     """
   end
 
   defp participant_stats(assigns) do
     ~H"""
     <div class="text-xs whitespace-nowrap">
-      <div :for={{media, s} <- @stats}>
+      <div :for={{media, s} <- @entry.stats}>
         {media}: ↓{s.num_recv_packets}p ↑{s.num_send_packets}p
+        <span :if={s[:recv_kbps]}>↓{s.recv_kbps} kb/s</span>
+        <span :if={s[:send_kbps]}>↑{s.send_kbps} kb/s</span>
         <span :if={s.lost_recv_packets > 0} class="text-warning">
           ({s.lost_recv_packets} {gettext("perdus")})
         </span>
       </div>
+      <div :if={aging?(@entry, @interval_ms)} class="text-warning">
+        {gettext("chiffres vieillissants (%{s} s)", s: div(@entry.since_ms, 1000))}
+      </div>
     </div>
     """
   end
+
+  # The sample says how long it actually covered. A sweep that took much longer
+  # than its own interval means a slow MCU, so the numbers on screen are old —
+  # which is a different thing from a backlog, and the operator must see which.
+  defp aging?(%{since_ms: since}, interval) when is_integer(since) and is_integer(interval),
+    do: since > 2 * interval
+
+  defp aging?(_entry, _interval), do: false
 
   attr :title, :string, required: true
   slot :inner_block, required: true

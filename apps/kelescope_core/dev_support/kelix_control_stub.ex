@@ -280,6 +280,9 @@ defmodule Kelix.Control do
     }
   ]
 
+  # `[module.mcu] stats_interval_ms` (elixip docs/design/mcu-live-push.md).
+  @stats_interval_ms 15_000
+
   @fake_rows [
     %{
       id: 1,
@@ -329,6 +332,12 @@ defmodule Kelix.Control do
         subs: MapSet.new(),
         counter_subs: MapSet.new(),
         registration_subs: %{},
+        conference_subs: MapSet.new(),
+        conference_detail_subs: %{},
+        conference_stats_subs: %{},
+        push_capability: true,
+        module_loaded: true,
+        stats_interval_ms: @stats_interval_ms,
         rows: @fake_rows,
         status: @fake_status,
         domains: @fake_domains,
@@ -352,6 +361,76 @@ defmodule Kelix.Control do
 
   def subscribe_registrations(pid, domain),
     do: GenServer.call(__MODULE__, {:subscribe_registrations, pid, domain})
+
+  def subscribe_conferences(pid) do
+    ensure_push!(:subscribe_conferences, 1)
+    GenServer.call(__MODULE__, {:subscribe_conferences, pid})
+  end
+
+  def unsubscribe_conferences(pid) do
+    ensure_push!(:unsubscribe_conferences, 1)
+    GenServer.call(__MODULE__, {:unsubscribe_conferences, pid})
+  end
+
+  def subscribe_conference(pid, uid) do
+    ensure_push!(:subscribe_conference, 2)
+    GenServer.call(__MODULE__, {:subscribe_conference, pid, uid})
+  end
+
+  def unsubscribe_conference(pid, uid) do
+    ensure_push!(:unsubscribe_conference, 2)
+    GenServer.call(__MODULE__, {:unsubscribe_conference, pid, uid})
+  end
+
+  def subscribe_conference_stats(pid, uid) do
+    ensure_push!(:subscribe_conference_stats, 2)
+    GenServer.call(__MODULE__, {:subscribe_conference_stats, pid, uid})
+  end
+
+  def unsubscribe_conference_stats(pid, uid) do
+    ensure_push!(:unsubscribe_conference_stats, 2)
+    GenServer.call(__MODULE__, {:unsubscribe_conference_stats, pid, uid})
+  end
+
+  @doc """
+  Turns the conference push contract off, so the six `*_conference*` functions
+  above answer like a kelixip that predates it (used by tests and to exercise
+  the fallback by hand in dev).
+
+  Exiting `:undef` from the caller's own process is what makes `:rpc.call/4`
+  return `{:badrpc, {:EXIT, {:undef, _}}}`, byte for byte what a genuinely
+  missing function yields — a stub that returned an `{:error, _}` tuple here
+  would never exercise the branch that matters.
+  """
+  def set_push_capability(enabled?),
+    do: GenServer.call(__MODULE__, {:set_push_capability, enabled?})
+
+  @doc "Sets `stats_interval_ms`; `0` disables the statistics topic (used by tests)."
+  def set_stats_interval(ms), do: GenServer.call(__MODULE__, {:set_stats_interval, ms})
+
+  @doc """
+  Answers as a node whose conferencing module is not loaded: the list topic
+  gives `owner: nil` and no conference, the other two `{:error, :not_found}`
+  (`Kelix.ModuleRegistry.facade` defaults, elixip docs/design/mcu-live-push.md).
+  """
+  def set_module_loaded(loaded?), do: GenServer.call(__MODULE__, {:set_module_loaded, loaded?})
+
+  @doc "Pushes `sample` to a conference's statistics subscribers (used by tests)."
+  def push_stats(uid, sample), do: GenServer.cast(__MODULE__, {:push_stats, uid, sample})
+
+  @doc """
+  Replaces a conference's roster and fans the change out, standing in for the
+  participant events no control command produces (used by tests and by the dev
+  screen).
+  """
+  def set_participants(uid, participants),
+    do: GenServer.call(__MODULE__, {:set_participants, uid, participants})
+
+  defp ensure_push!(fun, arity) do
+    unless GenServer.call(__MODULE__, :push_capability?) do
+      exit({:undef, [{__MODULE__, fun, arity, []}]})
+    end
+  end
 
   @doc "Unregisters one contact from an AOR; logged and pushed to registration subscribers."
   def unregister(domain, aor, contact_uri, admin),
@@ -382,10 +461,24 @@ defmodule Kelix.Control do
   def push_registration(domain, msg),
     do: GenServer.cast(__MODULE__, {:push_registration, domain, msg})
 
+  # Tests start this double with only the keys they care about (see
+  # `Kelescope.Kelixip.LinkTest`), while the supervised links keep talking to
+  # whichever one holds the name. Filling the conference keys in here is what
+  # stops a link's background probe from crashing another file's double.
+  @conference_defaults %{
+    conferences: [],
+    conference_subs: MapSet.new(),
+    conference_detail_subs: %{},
+    conference_stats_subs: %{},
+    push_capability: true,
+    module_loaded: true,
+    stats_interval_ms: @stats_interval_ms
+  }
+
   @impl true
   def init(state) do
     :timer.send_interval(3_000, :tick)
-    {:ok, state}
+    {:ok, Map.merge(@conference_defaults, state)}
   end
 
   @impl true
@@ -428,6 +521,100 @@ defmodule Kelix.Control do
 
         {:reply, {:ok, %{domain: d.name, registrations: regs}},
          %{state | registration_subs: subs}}
+    end
+  end
+
+  @impl true
+  def handle_call(:push_capability?, _from, state) do
+    {:reply, state.push_capability, state}
+  end
+
+  def handle_call({:set_push_capability, enabled?}, _from, state) do
+    {:reply, :ok, %{state | push_capability: enabled?}}
+  end
+
+  def handle_call({:set_stats_interval, ms}, _from, state) do
+    {:reply, :ok, %{state | stats_interval_ms: ms}}
+  end
+
+  def handle_call({:set_module_loaded, loaded?}, _from, state) do
+    {:reply, :ok, %{state | module_loaded: loaded?}}
+  end
+
+  @impl true
+  def handle_call({:subscribe_conferences, _pid}, _from, %{module_loaded: false} = state) do
+    {:reply, {:ok, %{owner: nil, conferences: []}}, state}
+  end
+
+  def handle_call({:subscribe_conferences, pid}, _from, state) do
+    rows = Enum.map(state.conferences, &render_conference/1)
+
+    {:reply, {:ok, %{owner: self(), conferences: rows}},
+     %{state | conference_subs: MapSet.put(state.conference_subs, pid)}}
+  end
+
+  def handle_call({:unsubscribe_conferences, pid}, _from, state) do
+    {:reply, :ok, %{state | conference_subs: MapSet.delete(state.conference_subs, pid)}}
+  end
+
+  @impl true
+  def handle_call({:subscribe_conference, _pid, _uid}, _from, %{module_loaded: false} = state) do
+    {:reply, {:error, :not_found}, state}
+  end
+
+  def handle_call({:subscribe_conference, pid, uid}, _from, state) do
+    case find_conference(state, uid) do
+      nil ->
+        {:reply, {:error, :not_found}, state}
+
+      conf ->
+        reply =
+          %{owner: self()}
+          |> Map.put(:conference, render_conference(conf))
+          |> Map.put(:participants, Enum.map(conf.participants, &render_participant/1))
+
+        {:reply, {:ok, reply}, add_sub(state, :conference_detail_subs, uid, pid)}
+    end
+  end
+
+  def handle_call({:unsubscribe_conference, pid, uid}, _from, state) do
+    {:reply, :ok, drop_sub(state, :conference_detail_subs, uid, pid)}
+  end
+
+  @impl true
+  def handle_call({:subscribe_conference_stats, _pid, _uid}, _from, %{stats_interval_ms: 0} = state) do
+    {:reply, {:error, :disabled}, state}
+  end
+
+  def handle_call({:subscribe_conference_stats, pid, uid}, _from, state) do
+    case find_conference(state, uid) do
+      nil ->
+        {:reply, {:error, :not_found}, state}
+
+      conf ->
+        # The contract sweeps a fresh subscription on the spot: an expanded
+        # panel showing nothing for a whole interval reads as broken.
+        send(pid, {:kelix_conference_stats, uid, stats_sample(conf, state)})
+
+        {:reply, {:ok, %{owner: self(), interval_ms: state.stats_interval_ms}},
+         add_sub(state, :conference_stats_subs, uid, pid)}
+    end
+  end
+
+  def handle_call({:unsubscribe_conference_stats, pid, uid}, _from, state) do
+    {:reply, :ok, drop_sub(state, :conference_stats_subs, uid, pid)}
+  end
+
+  @impl true
+  def handle_call({:set_participants, uid, participants}, _from, state) do
+    case find_conference(state, uid) do
+      nil ->
+        {:reply, {:error, :not_found}, state}
+
+      conf ->
+        updated = %{conf | participants: participants}
+        new_state = %{state | conferences: replace_conference(state.conferences, updated)}
+        {:reply, :ok, fan_out(state, new_state)}
     end
   end
 
@@ -492,8 +679,8 @@ defmodule Kelix.Control do
 
   @impl true
   def handle_call({:module_command, "mcu", cmd, args}, _from, state) do
-    {reply, state} = mcu_command(cmd, args, state)
-    {:reply, reply, state}
+    {reply, new_state} = mcu_command(cmd, args, state)
+    {:reply, reply, fan_out(state, new_state)}
   end
 
   # Key names mirror the labels `kelictl auth_db show` prints. They are read off
@@ -533,12 +720,103 @@ defmodule Kelix.Control do
   end
 
   @impl true
+  def handle_cast({:push_stats, uid, sample}, state) do
+    for pid <- Map.get(state.conference_stats_subs, uid, MapSet.new()),
+        do: send(pid, {:kelix_conference_stats, uid, sample})
+
+    {:noreply, state}
+  end
+
+  @impl true
   def handle_info(:tick, state) do
     row = state.rows |> Enum.random() |> Map.put(:event, Enum.random(~w(ACK BYE INFO REGISTER)))
 
     for pid <- state.subs, do: send(pid, {:kelix_monitor, {:upsert, row}})
 
+    for {uid, pids} <- state.conference_stats_subs, conf = find_conference(state, uid), pid <- pids,
+        do: send(pid, {:kelix_conference_stats, uid, stats_sample(conf, state)})
+
     {:noreply, state}
+  end
+
+  # ── conference push fan-out ──────────────────────────────────────────────
+  # This double has no event bus. It compares the conference table before and
+  # after a command and pushes what changed, which is the observable half of
+  # what elixip's `Event.emit/3` fan-out will do (docs/design/mcu-live-push.md,
+  # dépôt elixip) — and it cannot drift from the list of commands the way a
+  # hand-placed push per command would.
+
+  defp fan_out(before, state) do
+    old = Map.new(before.conferences, &{&1.uid, &1})
+    new = Map.new(state.conferences, &{&1.uid, &1})
+
+    for {uid, conf} <- new, Map.get(old, uid) != conf, do: emit_upsert(state, conf)
+    for {uid, _conf} <- old, not is_map_key(new, uid), do: emit_destroyed(state, uid)
+
+    state
+  end
+
+  defp emit_upsert(state, conf) do
+    row = render_conference(conf)
+    for pid <- state.conference_subs, do: send(pid, {:kelix_conferences, {:upsert, row}})
+
+    detail = %{
+      conference: row,
+      participants: Enum.map(conf.participants, &render_participant/1)
+    }
+
+    for pid <- detail_subs(state, conf.uid),
+        do: send(pid, {:kelix_conference, conf.uid, {:snapshot, detail}})
+  end
+
+  defp emit_destroyed(state, uid) do
+    for pid <- state.conference_subs, do: send(pid, {:kelix_conferences, {:remove, uid}})
+    for pid <- detail_subs(state, uid), do: send(pid, {:kelix_conference, uid, :destroyed})
+  end
+
+  defp detail_subs(state, uid), do: Map.get(state.conference_detail_subs, uid, MapSet.new())
+
+  defp add_sub(state, key, uid, pid) do
+    subs = Map.update(Map.fetch!(state, key), uid, MapSet.new([pid]), &MapSet.put(&1, pid))
+    Map.put(state, key, subs)
+  end
+
+  defp drop_sub(state, key, uid, pid) do
+    subs = Map.update(Map.fetch!(state, key), uid, MapSet.new(), &MapSet.delete(&1, pid))
+    Map.put(state, key, subs)
+  end
+
+  # Only legs that reached the mixer are swept: a ringing one has no MCU-side
+  # participant to ask about, so it carries no `part_id` and no statistics.
+  defp stats_sample(conf, state) do
+    %{
+      at: DateTime.utc_now(),
+      mcu: conf.mcu,
+      interval_ms: state.stats_interval_ms,
+      participants:
+        for p <- conf.participants, not is_nil(p.part_id) do
+          %{
+            part_id: p.part_id,
+            name: p.name,
+            state: p.state,
+            since_ms: state.stats_interval_ms,
+            stats: p |> fake_statistics() |> Map.new(fn {m, s} -> {m, derive(s, state)} end),
+            stats_error: nil
+          }
+        end
+    }
+  end
+
+  # kelescope never computes a rate itself: the contract puts that arithmetic
+  # on the node, so the double owes it too.
+  defp derive(s, state) do
+    seconds = state.stats_interval_ms / 1000
+
+    Map.merge(s, %{
+      recv_kbps: round(s.total_recv_bytes * 8 / 1000 / seconds),
+      send_kbps: round(s.total_send_bytes * 8 / 1000 / seconds),
+      lost_recv_delta: 0
+    })
   end
 
   defp find_domain(state, name) do

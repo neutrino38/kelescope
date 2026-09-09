@@ -36,17 +36,12 @@ dernier une fois par participant pour ses statistiques média).
 participant) et `slot.*` (épinglage de mosaïque) existent aussi côté elixip
 mais ne sont pas exposés ici — hors périmètre, voir plus bas.
 
-**Aucune poussée en direct** : `docs/design/DESIGN-MCU.md` (dépôt elixip, §11
-et limitation L9) est explicite — les événements MCU (participant qui
-rejoint/quitte, changement de layout, etc.) ne sont aujourd'hui lus que par le
-logger, l'émetteur de métriques et le scénario propriétaire de la conférence,
-jamais délivrés à un consommateur externe. Contrairement au suivi des
-scénarios ou des compteurs de domaine, kelescope **sonde** (polling) la liste
-des conférences toutes les 10 secondes, sur le modèle de
-`Kelescope.Kelixip.StatusPoller` plutôt qu'un lien à abonnement. Le détail
-d'une conférence (participants et leurs statistiques média compris) n'est pas
-mis en cache non plus : il est réinterrogé à chaque dépli d'une ligne, avec un
-bouton « Rafraîchir » manuel puisqu'aucun flux ne le met à jour tout seul.
+**Poussée en direct** : elle est spécifiée par `docs/design/mcu-live-push.md`
+(dépôt elixip) et consommée par `Kelescope.Kelixip.ConferencesLink`. Voir
+[docs/conception/phase4-mcu-push/SPEC.md](../phase4-mcu-push/SPEC.md), qui
+couvre aussi le repli par sondage sur un nœud qui ne sert pas ce contrat —
+c'est là, et seulement là, que le détail se réinterroge à chaque dépli avec un
+bouton « Rafraîchir » manuel.
 
 ### Trace admin sur `conference.create`/`conference.delete`
 
@@ -173,10 +168,11 @@ are the media server's and not ours to report »*. Kelescope affiche donc les
 compteurs RTP mais jamais le codec réellement négocié : cette information
 n'existe dans aucune commande exposée par elixip aujourd'hui.
 
-Une ligne dépliée fait un appel `participant.show` par participant affiché
-(en plus du `conference.show` déjà fait) : coût accepté pour l'instant,
-mêmes conditions de fraîcheur que le reste du détail (pas de mise en cache,
-réinterrogé à chaque dépli/rafraîchissement).
+Sous le contrat de poussée, ces statistiques arrivent par leur propre topic et
+`participant.show` n'est plus appelé. Sur un nœud sans ce contrat, une ligne
+dépliée fait un appel `participant.show` par participant affiché (en plus du
+`conference.show` déjà fait), réinterrogé à chaque dépli et à chaque
+rafraîchissement.
 
 ## Layouts (mosaïques)
 
@@ -223,21 +219,21 @@ au-dessus, même style que le reste du module : `list_conferences/2`,
 `delete_conference/4` (uid, admin, force \\ false), `start_recording/3`,
 `stop_recording/2`.
 
-### `Kelescope.Kelixip.ConferencesPoller`
-Calqué sur `Kelescope.Kelixip.StatusPoller` : sonde `Control.list_conferences/2`
-toutes les 10 s, diffuse `{:kelixip_conferences, conferences}` sur
-`"kelixip:conferences"`. Câblé dans `Kelescope.Application` et
-`config/runtime.exs` comme les autres liens (`node`/`cookie` communs).
+### `Kelescope.Kelixip.ConferencesLink`
+Détient les souscriptions conférences du nœud et rediffuse en local. Câblé dans
+`Kelescope.Mcu.Application` et `config/runtime.exs` comme les autres liens
+(`node`/`cookie` communs). Décrit dans
+[docs/conception/phase4-mcu-push/SPEC.md](../phase4-mcu-push/SPEC.md).
 
 ### `KelescopeWeb.McuLive` (`/mcu`)
 Liste des conférences (nom, domaine, mediaserver, nombre de participants,
 icône de layout, badge « REC »). Une ligne entière (pas seulement le nom) est
-cliquable pour se déplier : elle réinterroge `Control.conference/2`, puis
-`Control.participant/3` pour chaque participant listé, et affiche les
-propriétés complètes (dont résolution/débit vidéo, codec préféré, mode VAD,
-bascule automatique de mosaïque, fréquence de mixage, médias répondus et logo),
-les participants avec leurs statistiques média, et l'état d'enregistrement,
-avec un bouton « Rafraîchir » manuel.
+cliquable pour se déplier : elle affiche les propriétés complètes (dont
+résolution/débit vidéo, codec préféré, mode VAD, bascule automatique de
+mosaïque, fréquence de mixage, médias répondus et logo), les participants avec
+leurs statistiques média, et l'état d'enregistrement. Le dépliement prend et
+relâche les souscriptions conférence et statistiques ; le bouton
+« Rafraîchir » n'existe que sur un nœud sans poussée.
 
 « Nouvelle conférence » ouvre un formulaire découpé en **quatre sections**,
 chacune sur deux colonnes :
@@ -307,7 +303,8 @@ est simplement numéroté à la suite au lieu de pouvoir échouer
 
 ## Tests
 
-- `Kelescope.Kelixip.ConferencesPollerTest`, calqué sur `StatusPollerTest`.
+- `Kelescope.Kelixip.ConferencesLinkTest` (voir
+  [phase4-mcu-push](../phase4-mcu-push/SPEC.md)).
 - `KelescopeWeb.McuLiveTest` : liste, dépli/détail/participants (dont leurs
   statistiques média), résolution/débit vidéo, codec préféré, mode VAD,
   bascule automatique de mosaïque, fréquence de mixage, médias répondus et logo
@@ -334,8 +331,9 @@ est simplement numéroté à la suite au lieu de pouvoir échouer
 
 ## Critères d'acceptation
 
-- La liste des conférences se charge sans navigation et se rafraîchit toute
-  seule au bout de 10 s au plus.
+- La liste des conférences se charge sans navigation et se met à jour toute
+  seule (voir [phase4-mcu-push](../phase4-mcu-push/SPEC.md) pour le délai selon
+  le mode).
 - Créer ou détruire une conférence exige un nom d'administrateur non vide ;
   kelixip trace ce nom dans ses journaux, au niveau `info`.
 - Modifier les propriétés ou démarrer/arrêter un enregistrement n'exige pas
@@ -389,17 +387,11 @@ est simplement numéroté à la suite au lieu de pouvoir échouer
   encore relu ni fusionné côté elixip au moment d'écrire ceci ; un rebase de
   cette branche pourrait en changer la forme, auquel cas cette page et le
   double de développement demandent un ajustement symétrique.
-- L'absence de poussée en direct pour les conférences (contrairement aux
-  scénarios/domaines/enregistrements) signifie qu'un opérateur peut voir une
-  liste vieille de 10 s, et qu'un détail déplié ne se met à jour que sur un
-  clic « Rafraîchir ». Accepté pour l'instant — DESIGN-MCU.md indique que la
-  poussée d'événements MCU vers un consommateur externe n'est pas construite ;
-  à revisiter si elixip l'ajoute un jour.
-- Une conférence dépliée avec beaucoup de participants fait autant d'appels
-  `participant.show` (donc de `GetParticipantStatistics` au média serveur)
-  que de participants affichés, à chaque dépli et à chaque « Rafraîchir » —
-  accepté pour l'instant faute d'un besoin observé de conférences à fort
-  effectif ; à revisiter si cela pèse sur le média serveur en pratique.
+- Sur un nœud sans le contrat de poussée, les deux limites d'origine
+  subsistent : une liste vieille de 10 s au plus, un détail qui ne bouge que
+  sur un clic « Rafraîchir », et autant d'appels `participant.show` que de
+  participants affichés à chaque dépli. Voir
+  [phase4-mcu-push](../phase4-mcu-push/SPEC.md).
 - Le champ logo n'est pas validé côté kelescope (nom de fichier bien formé,
   fichier existant sur le média serveur) : une faute de frappe n'est signalée
   qu'au retour d'erreur d'elixip, affiché tel quel dans le formulaire.

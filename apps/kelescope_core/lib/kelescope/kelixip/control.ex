@@ -92,6 +92,96 @@ defmodule Kelescope.Kelixip.Control do
   end
 
   @doc """
+  Subscribes `pid` to the conference list on `node`.
+
+  Returns the pid owning the subscription and the current rows (same shape as
+  `list_conferences/2`). `pid` then receives `{:kelix_conferences, {:upsert,
+  conf_row}}` and `{:kelix_conferences, {:remove, uid}}` as conferences change.
+
+  The owner is the process holding the subscriber list: it dies with a module
+  reload, taking the subscription with it and telling nobody, so callers
+  `Process.monitor/1` it and re-subscribe on `:DOWN`.
+
+  `owner: nil` with an empty list is the node saying it runs without the
+  conferencing module: nothing to watch, and no pid to monitor.
+  """
+  @spec subscribe_conferences(node(), pid()) ::
+          {:ok, %{owner: pid() | nil, conferences: [map()]}} | {:error, term()}
+  def subscribe_conferences(node, pid) do
+    case :rpc.call(node, Kelix.Control, :subscribe_conferences, [pid]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc "Stops a subscription started by `subscribe_conferences/2`."
+  @spec unsubscribe_conferences(node(), pid()) :: :ok | {:error, term()}
+  def unsubscribe_conferences(node, pid) do
+    case :rpc.call(node, Kelix.Control, :unsubscribe_conferences, [pid]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc """
+  Subscribes `pid` to one conference and its roster.
+
+  Returns the subscription owner, the conference row and its participants.
+  `pid` then receives `{:kelix_conference, uid, {:snapshot, %{conference:
+  conf_row, participants: [part_row]}}}` on every change — the whole roster
+  each time, never a delta — and `{:kelix_conference, uid, :destroyed}`.
+  """
+  @spec subscribe_conference(node(), pid(), String.t()) ::
+          {:ok, %{owner: pid(), conference: map(), participants: [map()]}}
+          | {:error, :not_found | term()}
+  def subscribe_conference(node, pid, uid) do
+    case :rpc.call(node, Kelix.Control, :subscribe_conference, [pid, uid]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc "Stops a subscription started by `subscribe_conference/3`."
+  @spec unsubscribe_conference(node(), pid(), String.t()) :: :ok | {:error, term()}
+  def unsubscribe_conference(node, pid, uid) do
+    case :rpc.call(node, Kelix.Control, :unsubscribe_conference, [pid, uid]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc """
+  Subscribes `pid` to one conference's media statistics.
+
+  Returns the subscription owner and the sweep interval; the first sample
+  arrives as a push right away, not in this reply. `pid` then receives
+  `{:kelix_conference_stats, uid, sample}` every `interval_ms`.
+
+  Each sweep costs one RPC per connected leg on the media server's control
+  channel, shared with call setup: a subscription left open on a collapsed
+  panel is a server-side performance bug. `{:error, :disabled}` means the node
+  runs with `stats_interval_ms = 0` — there is nothing to display, ever.
+  """
+  @spec subscribe_conference_stats(node(), pid(), String.t()) ::
+          {:ok, %{owner: pid(), interval_ms: pos_integer()}}
+          | {:error, :not_found | :disabled | term()}
+  def subscribe_conference_stats(node, pid, uid) do
+    case :rpc.call(node, Kelix.Control, :subscribe_conference_stats, [pid, uid]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc "Stops a subscription started by `subscribe_conference_stats/3`."
+  @spec unsubscribe_conference_stats(node(), pid(), String.t()) :: :ok | {:error, term()}
+  def unsubscribe_conference_stats(node, pid, uid) do
+    case :rpc.call(node, Kelix.Control, :unsubscribe_conference_stats, [pid, uid]) do
+      {:badrpc, reason} -> {:error, reason}
+      result -> result
+    end
+  end
+
+  @doc """
   Removes (unregisters) one contact from an AOR (`kelictl registration remove
   <domain> <aor> <uri>`). `admin` identifies who requested it, for kelixip's
   own audit log.

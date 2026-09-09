@@ -105,7 +105,7 @@ depuis `KELESCOPE_BUILD_VERSION` à la compilation.
 | `kelescope_core` | `Endpoint`, `Router`, `Layouts`, `CoreComponents`, `Gettext`, `Telemetry`, `ErrorHTML`, `ErrorJSON`, `LocaleController`, `LocaleHook`, `Kelixip.Link`, `Kelixip.Control`, `Kelixip.DomainsLink`, et tous les assets |
 | `kelescope_monitor` | `ScenarioMonitorLive`, `Kelixip.StatusPoller` |
 | `kelescope_domaines` | `DomainListLive` |
-| `kelescope_mcu` | `McuLive`, `Kelixip.ConferencesPoller` |
+| `kelescope_mcu` | `McuLive`, `Kelixip.ConferencesLink` |
 
 `Kelixip.DomainsLink` est dans le socle parce que deux pages le consomment,
 `/domains` et `/mcu`. C'est la règle : **un lien kelixip servi à plus d'une page

@@ -17,6 +17,11 @@ config :kelescope_core, KelescopeWeb.Endpoint,
 # Print only warnings and errors during test
 config :logger, level: :warning
 
+# Every test file that takes the `Kelix.Control` double over kills the pid this
+# link monitors as its subscription owner, so it reconnects between files. The
+# production five seconds would make each of those waits a five-second one.
+config :kelescope_mcu, Kelescope.Kelixip.ConferencesLink, retry_after: 100, poll_interval: 100
+
 # Initialize plugs at runtime for faster test compilation
 config :phoenix, :plug_init_mode, :runtime
 
