@@ -13,7 +13,7 @@
 %global min_core 0.2.0
 
 Name:           kelescope
-Version:        0.3.0
+Version:        0.4.0
 Release:        1%{?dist}
 Summary:        Interface d'administration web pour kelixip
 
@@ -29,10 +29,11 @@ Requires:       kelescope-core >= %{min_core}
 Requires:       kelescope-monitor >= %{min_core}
 Requires:       kelescope-domaines >= %{min_core}
 Requires:       kelescope-mcu >= %{min_core}
+Requires:       kelescope-admins >= %{min_core}
 
 %description
 kelescope est l'interface d'administration web du serveur d'application
-kelixip. Ce paquet n'installe aucun fichier : il tire le socle et les trois
+kelixip. Ce paquet n'installe aucun fichier : il tire le socle et les quatre
 pages.
 
 Chaque partie se met a jour separement. Corriger une page ne reexpedie ni le
@@ -40,6 +41,9 @@ runtime Erlang, ni les autres pages.
 
 %package runtime
 Summary:        Socle d'execution de kelescope (runtime Erlang, service systemd)
+# openssl : la commande, employee pour produire les fichiers PKCS#12 des
+# certificats clients (ADR-004). openssl-libs ne suffit pas.
+Requires:       openssl
 Requires:       openssl-libs
 Requires:       ncurses-libs
 Requires(pre):  shadow-utils
@@ -96,6 +100,20 @@ Page des domaines (/domains).
 Installe dans /opt/kelescope/plugins/kelescope_domaines-%{abi}. Ne contient ni runtime
 Erlang ni dependances.
 
+%package admins
+Summary:        Pages de gestion des comptes (/admins, /account)
+Requires:       kelescope-runtime >= %{min_runtime}
+Requires:       kelescope-core >= %{min_core}
+Requires(posttrans): systemd
+Requires(postun):    systemd
+
+%description admins
+Pages de gestion des comptes administrateurs (/admins) et du compte connecte
+(/account).
+
+Installe dans /opt/kelescope/plugins/kelescope_admins-%{abi}. Ne contient ni
+runtime Erlang ni dependances.
+
 %package mcu
 Summary:        Page MCU (/mcu)
 Requires:       kelescope-runtime >= %{min_runtime}
@@ -139,7 +157,7 @@ install -d %{buildroot}/opt/kelescope
 cp -a _build/prod/rel/kelescope/. %{buildroot}/opt/kelescope/
 
 # priv est un lien symbolique dans _build : -L le deroule.
-for app in kelescope_core kelescope_monitor kelescope_domaines kelescope_mcu; do
+for app in kelescope_core kelescope_monitor kelescope_domaines kelescope_mcu kelescope_admins; do
     install -d %{buildroot}/opt/kelescope/plugins/${app}-%{abi}
     cp -aL _build/prod/lib/${app}/ebin %{buildroot}/opt/kelescope/plugins/${app}-%{abi}/
     if [ -e _build/prod/lib/${app}/priv ]; then
@@ -218,6 +236,15 @@ if [ "$1" -eq 1 ]; then
     fi
 fi
 
+auth_dir=$(grep -m1 '^KELESCOPE_AUTH_DIR=' "%{_sysconfdir}/kelescope/kelescope.env" | cut -d= -f2-)
+auth_dir=${auth_dir:-/var/lib/kelescope/auth}
+
+if [ ! -s "$auth_dir/admins.json" ]; then
+    echo "kelescope : aucun compte administrateur. Une fois le service demarre, amorcez le premier :"
+    echo "    /opt/kelescope/bin/kelescope rpc 'Kelescope.Auth.bootstrap(\"prenom.nom\")'"
+    echo "Voir docs/utilisation/enrolement.md."
+fi
+
 %preun runtime
 %systemd_preun kelescope.service
 
@@ -256,6 +283,14 @@ if [ "$1" -eq 0 ]; then
     systemctl try-restart kelescope >/dev/null 2>&1 || :
 fi
 
+%posttrans admins
+/opt/kelescope/bin/kelescope-reload-plugin kelescope_admins || :
+
+%postun admins
+if [ "$1" -eq 0 ]; then
+    systemctl try-restart kelescope >/dev/null 2>&1 || :
+fi
+
 %files
 
 %files runtime
@@ -285,7 +320,20 @@ fi
 %defattr(-,root,root,-)
 /opt/kelescope/plugins/kelescope_mcu-%{abi}
 
+%files admins
+%defattr(-,root,root,-)
+/opt/kelescope/plugins/kelescope_admins-%{abi}
+
 %changelog
+* Wed Sep 09 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.4.0-1
+- Authentification des administrateurs : passkey WebAuthn et certificat client,
+  les deux exiges. Roles moniteur/administrateur, portee globale ou par
+  domaines. Nouveau paquet kelescope-admins (/admins, /account).
+- Nouvelles variables KELESCOPE_AUTH_DIR, KELESCOPE_CLIENT_CERT_DAYS,
+  KELESCOPE_SESSION_HOURS, KELESCOPE_INVITE_HOURS.
+- Apres mise a jour, kelescope refuse tout acces jusqu'a l'amorcage du premier
+  compte depuis le shell de l'hote.
+
 * Tue Sep 08 2026 Emmanuel Buu <emmanuel.buu@ives.fr> - 0.3.0-1
 - Ecran MCU : saisie du DID a la creation d'un pont.
 
