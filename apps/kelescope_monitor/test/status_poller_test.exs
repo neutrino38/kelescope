@@ -15,7 +15,7 @@ defmodule Kelescope.Kelixip.StatusPollerTest do
     :ok = Supervisor.terminate_child(Kelescope.Supervisor, Kelix.Control)
 
     on_exit(fn ->
-      Supervisor.restart_child(Kelescope.Supervisor, Kelix.Control)
+      Kelescope.KelixStub.restore!()
     end)
 
     Phoenix.PubSub.subscribe(Kelescope.PubSub, @status_topic)
