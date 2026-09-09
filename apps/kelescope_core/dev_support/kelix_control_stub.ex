@@ -65,11 +65,25 @@ defmodule Kelix.Control do
       }
     ],
     modules: [:registrar, :conferencing, :auth_db],
-    module_status: %{
-      conferencing: %{active_conferences: 1, participants: 3},
-      auth_db: %{connected: true}
-    },
+    module_status: %{conferencing: %{active_conferences: 1, participants: 3}},
     domains_version: 3
+  }
+
+  # `kelictl auth_db show`. Field names and types checked against a live
+  # kelixip 1.5 node, not guessed from the command's printed output.
+  @fake_auth_db %{
+    state: :up,
+    host: "kelixip-db.example.org",
+    port: 3306,
+    database: "IDENTIFICATION",
+    username: "asterisk",
+    table: "os_subscriber",
+    driver: :mysql,
+    tls: true,
+    certificate: "not verified",
+    transport: "TLS, server certificate NOT verified (no ssl_ca_cert_file)",
+    pool_size: 4,
+    query_timeout_ms: 5000
   }
 
   @fake_domains [
@@ -319,7 +333,8 @@ defmodule Kelix.Control do
         status: @fake_status,
         domains: @fake_domains,
         registrations: @fake_registrations,
-        conferences: @fake_conferences
+        conferences: @fake_conferences,
+        auth_db: @fake_auth_db
       },
       name: __MODULE__
     )
@@ -479,6 +494,13 @@ defmodule Kelix.Control do
   def handle_call({:module_command, "mcu", cmd, args}, _from, state) do
     {reply, state} = mcu_command(cmd, args, state)
     {:reply, reply, state}
+  end
+
+  # Key names mirror the labels `kelictl auth_db show` prints. They are read off
+  # that output, not off the module: treat a page that depends on one of them
+  # as unverified.
+  def handle_call({:module_command, "auth_db", "show", _args}, _from, state) do
+    {:reply, {:ok, state.auth_db}, state}
   end
 
   def handle_call({:module_command, _module, _cmd, _args}, _from, state) do

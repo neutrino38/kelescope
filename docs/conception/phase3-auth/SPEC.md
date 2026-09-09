@@ -409,8 +409,12 @@ poussée en direct ne peut le laisser fuir.
 
 - `ScenarioMonitorLive` (`kelescope_monitor`) : filtre les scénarios au montage
   et à chaque `handle_info`. Le `<select>` de la phase 2 ne propose que les
-  domaines visibles. Le panneau d'état de l'instance, pool de mediaservers et
-  connexion DB, n'apparaît que pour une portée `all`. Le bouton « Arrêter »
+  domaines visibles. Le panneau d'état de l'instance et le pool de mediaservers
+  n'apparaissent que pour une portée `all`. L'état de la connexion à la base
+  `auth_db` s'affiche pour tout le monde, mais son détail — hôte, port, base,
+  utilisateur — est réservé à la portée `all`
+  ([docs/reference/connexion-auth-db.md](../../reference/connexion-auth-db.md)).
+  Le bouton « Arrêter »
   n'apparaît que si `can?(scope, :shutdown, domain)`.
 - `DomainListLive` (`kelescope_domaines`) : même filtrage sur la liste et sur
   les poussées de compteurs. « Recharger » et « Désenregistrer » sont soumis à

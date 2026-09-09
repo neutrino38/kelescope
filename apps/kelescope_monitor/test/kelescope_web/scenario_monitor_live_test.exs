@@ -93,28 +93,34 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
     assert html =~ "non disponibles"
   end
 
-  test "shows a database connection tile only when the auth_db module is active", %{conn: conn} do
+  test "shows the auth_db state from the module's own control command", %{conn: conn} do
     {:ok, view, html} = live(conn, ~p"/")
+
+    # A global scope reads the detail the module reports.
     assert html =~ "Connexion BDD"
     assert html =~ "connectée"
+    assert html =~ "kelixip-db.example.org"
+    assert html =~ "3306"
 
-    send(
-      view.pid,
-      {:kelixip_status,
-       %{
-         node: :test@host,
-         uptime_ms: 0,
-         instances: %{},
-         listeners: [],
-         media_pool: [],
-         modules: [:auth_db],
-         module_status: %{auth_db: %{connected: false}},
-         domains_version: 1
-       }}
-    )
-
+    send(view.pid, {:kelixip_auth_db, {:ok, %{state: :down, host: "kelixip-db.example.org"}}})
     assert render(view) =~ "déconnectée"
 
+    # A shape without the one key the summary rests on never reads as healthy.
+    send(view.pid, {:kelixip_auth_db, {:ok, %{host: "kelixip-db.example.org"}}})
+    html = render(view)
+    assert html =~ "état inconnu"
+    refute html =~ "connectée"
+
+    send(view.pid, {:kelixip_auth_db, {:error, :unknown_module}})
+    assert render(view) =~ "Module auth_db absent"
+
+    send(view.pid, {:kelixip_auth_db, {:error, :nodedown}})
+    assert render(view) =~ "état illisible"
+  end
+
+  test "lists every module status kelixip reports, with no exception", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
+
     send(
       view.pid,
       {:kelixip_status,
@@ -124,13 +130,18 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
          instances: %{},
          listeners: [],
          media_pool: [],
-         modules: [],
-         module_status: %{},
+         modules: [:registrar, :auth_db],
+         module_status: %{registrar: %{aors: 12}, auth_db: %{whatever: :shape}},
          domains_version: 1
        }}
     )
 
-    refute render(view) =~ "Connexion BDD"
+    html = render(view)
+
+    assert html =~ "registrar"
+    assert html =~ "aors 12"
+    assert html =~ "auth_db"
+    assert html =~ "whatever shape"
   end
 
   test "shutting down a scenario asks for confirmation, and logs the connected account", %{
@@ -175,8 +186,19 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
       {:ok, _view, html} = live(conn, ~p"/")
 
       refute html =~ "phx-click=\"request_shutdown\""
-      refute html =~ "Connexion BDD"
       refute html =~ "ms1"
+    end
+
+    test "reads whether the database holds, never where it lives", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      assert html =~ "Connexion BDD"
+      assert html =~ "connectée"
+
+      refute html =~ "kelixip-db.example.org"
+      refute html =~ "3306"
+      refute html =~ "asterisk"
+      refute html =~ "IDENTIFICATION"
     end
   end
 

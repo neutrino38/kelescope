@@ -115,6 +115,10 @@ config :kelescope_monitor, Kelescope.Kelixip.StatusPoller,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")
 
+config :kelescope_monitor, Kelescope.Kelixip.AuthDbPoller,
+  node: (kelixip_node || to_string(node())) |> String.to_atom(),
+  cookie: System.get_env("KELIXIP_COOKIE")
+
 config :kelescope_core, Kelescope.Kelixip.DomainsLink,
   node: (kelixip_node || to_string(node())) |> String.to_atom(),
   cookie: System.get_env("KELIXIP_COOKIE")

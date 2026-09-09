@@ -11,6 +11,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
       Phoenix.PubSub.subscribe(Kelescope.PubSub, "kelixip:scenarios")
       Phoenix.PubSub.subscribe(Kelescope.PubSub, "kelixip:link")
       Phoenix.PubSub.subscribe(Kelescope.PubSub, "kelixip:status")
+      Phoenix.PubSub.subscribe(Kelescope.PubSub, Kelescope.Kelixip.AuthDbPoller.topic())
     end
 
     # PubSub doesn't replay: fetch what Link already knows so a mount after
@@ -24,6 +25,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
        columns: @columns,
        domain_filter: nil,
        kelixip_status: Kelescope.Kelixip.StatusPoller.snapshot(),
+       auth_db: Kelescope.Kelixip.AuthDbPoller.snapshot(),
        selected_mediaserver: nil,
        pending_shutdown: nil
      )}
@@ -105,6 +107,10 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
     {:noreply, assign(socket, :kelixip_status, status)}
   end
 
+  def handle_info({:kelixip_auth_db, result}, socket) do
+    {:noreply, assign(socket, :auth_db, result)}
+  end
+
   @impl true
   def render(assigns) do
     ~H"""
@@ -121,6 +127,8 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
       </div>
 
       <.status_panel :if={Scope.global?(@current_scope)} status={@kelixip_status} />
+
+      <.auth_db_panel result={@auth_db} detailed={Scope.global?(@current_scope)} />
 
       <form id="domain-filter-form" phx-change="filter" class="mb-3 flex items-center gap-2 text-sm">
         <label for="domain-filter">{gettext("Domaine")}</label>
@@ -320,10 +328,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   def status_panel(assigns) do
     ~H"""
     <div class="mb-4 rounded border p-3">
-      <div class={[
-        "grid grid-cols-2 gap-3",
-        if(auth_db_active?(@status), do: "sm:grid-cols-5", else: "sm:grid-cols-4")
-      ]}>
+      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
           <div class="text-xs uppercase text-base-content/70">{gettext("Nœud")}</div>
           <div class="text-sm font-medium">{@status.node}</div>
@@ -339,18 +344,6 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
         <div>
           <div class="text-xs uppercase text-base-content/70">{gettext("Version domaines")}</div>
           <div class="text-sm font-medium">{@status.domains_version}</div>
-        </div>
-        <div :if={auth_db_active?(@status)}>
-          <div class="text-xs uppercase text-base-content/70">{gettext("Connexion BDD")}</div>
-          <div class="text-sm font-medium">
-            <span class={[
-              "rounded px-2 py-0.5 text-xs font-medium",
-              db_connected?(@status) && "bg-success/15 text-success",
-              !db_connected?(@status) && "bg-error/15 text-error"
-            ]}>
-              {if db_connected?(@status), do: gettext("connectée"), else: gettext("déconnectée")}
-            </span>
-          </div>
         </div>
       </div>
 
@@ -408,6 +401,96 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
     """
   end
 
+  @doc """
+  State of the `auth_db` database connection, from that module's own control
+  command. A global scope reads every field the module reports; any narrower
+  scope reads only whether the connection holds, because the detail names the
+  host, the port, the database and its user.
+  """
+  attr :result, :any, required: true
+  attr :detailed, :boolean, required: true
+
+  def auth_db_panel(%{result: nil} = assigns) do
+    ~H"""
+    <div class="mb-4 rounded border border-dashed p-3 text-sm text-base-content/70">
+      {gettext("Connexion BDD : en attente du premier relevé…")}
+    </div>
+    """
+  end
+
+  def auth_db_panel(%{result: {:error, :unknown_module}} = assigns) do
+    ~H"""
+    <div class="mb-4 rounded border border-dashed p-3 text-sm text-base-content/70">
+      {gettext("Module auth_db absent de cette instance kelixip.")}
+    </div>
+    """
+  end
+
+  def auth_db_panel(%{result: {:error, _reason}} = assigns) do
+    ~H"""
+    <div class="mb-4 rounded border p-3 text-sm">
+      <span class="text-xs uppercase text-base-content/70">{gettext("Connexion BDD")}</span>
+      <span class="ml-2 rounded bg-warning/15 px-2 py-0.5 text-xs font-medium text-warning">
+        {gettext("état illisible")}
+      </span>
+    </div>
+    """
+  end
+
+  def auth_db_panel(assigns) do
+    {:ok, details} = assigns.result
+    assigns = assign(assigns, :details, details)
+
+    ~H"""
+    <div class="mb-4 rounded border p-3">
+      <div class="flex items-center gap-2">
+        <span class="text-xs uppercase text-base-content/70">{gettext("Connexion BDD")}</span>
+        <span class={[
+          "rounded px-2 py-0.5 text-xs font-medium",
+          auth_db_up(@details) == true && "bg-success/15 text-success",
+          auth_db_up(@details) == false && "bg-error/15 text-error",
+          is_nil(auth_db_up(@details)) && "bg-warning/15 text-warning"
+        ]}>
+          {auth_db_label(@details)}
+        </span>
+      </div>
+
+      <div :if={@detailed} class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
+        <div :for={{key, value} <- auth_db_rows(@details)}>
+          <span class="text-xs uppercase text-base-content/70">{key}</span>
+          <span class="ml-1 font-medium">{value}</span>
+        </div>
+      </div>
+    </div>
+    """
+  end
+
+  # The reduced view rests on one key, `state`, the one `kelictl auth_db show`
+  # prints first. Any other value than up or down reads as unknown rather than
+  # as healthy: a connection page must not call an unread state fine.
+  defp auth_db_up(%{state: state}) when state in [:up, "up"], do: true
+  defp auth_db_up(%{state: state}) when state in [:down, "down"], do: false
+  defp auth_db_up(_details), do: nil
+
+  defp auth_db_label(details) do
+    case auth_db_up(details) do
+      true -> gettext("connectée")
+      false -> gettext("déconnectée")
+      nil -> gettext("état inconnu")
+    end
+  end
+
+  defp auth_db_rows(details) do
+    details
+    |> Map.delete(:state)
+    |> Enum.sort_by(&elem(&1, 0))
+    |> Enum.map(fn {key, value} -> {key, format_auth_db_value(value)} end)
+  end
+
+  defp format_auth_db_value(value) when is_binary(value), do: value
+  defp format_auth_db_value(value) when is_number(value) or is_atom(value), do: to_string(value)
+  defp format_auth_db_value(value), do: inspect(value)
+
   defp scenario(scenarios, id), do: Map.get(scenarios, id, %{})
 
   defp mediaserver_addresses(%{profiles: profiles}) when is_map(profiles) do
@@ -436,16 +519,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
     end
   end
 
-  defp auth_db_active?(status), do: :auth_db in Map.get(status, :modules, [])
-
-  defp db_connected?(status) do
-    status
-    |> Map.get(:module_status, %{})
-    |> Map.get(:auth_db, %{})
-    |> Map.get(:connected, false)
-  end
-
-  defp other_module_status(status), do: Map.drop(Map.get(status, :module_status, %{}), [:auth_db])
+  defp other_module_status(status), do: Map.get(status, :module_status, %{})
 
   defp domains(scenarios),
     do: scenarios |> Map.values() |> Enum.map(& &1.domain) |> Enum.uniq() |> Enum.sort()
