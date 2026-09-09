@@ -11,7 +11,7 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/kelescope_web/admins_live.ex:139
+#: lib/kelescope_web/admins_live.ex:136
 #, elixir-autogen, elixir-format
 msgid "Action impossible."
 msgstr "Action not possible."
@@ -21,17 +21,17 @@ msgstr "Action not possible."
 msgid "Ajouter une passkey"
 msgstr "Add a passkey"
 
-#: lib/kelescope_web/admins_live.ex:231
+#: lib/kelescope_web/admins_live.ex:229
 #, elixir-autogen, elixir-format
 msgid "Annuler"
 msgstr "Cancel"
 
-#: lib/kelescope_web/admins_live.ex:133
+#: lib/kelescope_web/admins_live.ex:130
 #, elixir-autogen, elixir-format
 msgid "C'est la dernière passkey de ce compte."
 msgstr "This is the last passkey of that account."
 
-#: lib/kelescope_web/admins_live.ex:134
+#: lib/kelescope_web/admins_live.ex:131
 #, elixir-autogen, elixir-format
 msgid "C'est le dernier poste de ce compte."
 msgstr "This is the last workstation of that account."
@@ -56,7 +56,7 @@ msgstr "This is the workstation you are using."
 msgid "Ce poste perdra l'accès immédiatement, même s'il a une session ouverte."
 msgstr "This workstation loses access at once, even with a session open."
 
-#: lib/kelescope_web/admins_live.ex:129
+#: lib/kelescope_web/admins_live.ex:126
 #, elixir-autogen, elixir-format
 msgid "Cet identifiant existe déjà."
 msgstr "That identifier is already taken."
@@ -66,47 +66,47 @@ msgstr "That identifier is already taken."
 msgid "Cette passkey ne pourra plus ouvrir de session."
 msgstr "This passkey will no longer open a session."
 
-#: lib/kelescope_web/admins_live.ex:153
+#: lib/kelescope_web/admins_live.ex:150
 #, elixir-autogen, elixir-format
 msgid "Code d'invitation de %{id}, affiché une seule fois :"
 msgstr "Invitation code for %{id}, shown once only:"
 
-#: lib/kelescope_web/admins_live.ex:132
+#: lib/kelescope_web/admins_live.ex:129
 #, elixir-autogen, elixir-format
 msgid "Compte introuvable."
 msgstr "Account not found."
 
-#: lib/kelescope_web/admins_live.ex:19
+#: lib/kelescope_web/admins_live.ex:18
 #, elixir-autogen, elixir-format
 msgid "Comptes"
 msgstr "Accounts"
 
-#: lib/kelescope_web/admins_live.ex:147
+#: lib/kelescope_web/admins_live.ex:144
 #, elixir-autogen, elixir-format
 msgid "Comptes administrateurs"
 msgstr "Administrator accounts"
 
-#: lib/kelescope_web/admins_live.ex:250
+#: lib/kelescope_web/admins_live.ex:248
 #, elixir-autogen, elixir-format
 msgid "Créer"
 msgstr "Create"
 
-#: lib/kelescope_web/admins_live.ex:237
+#: lib/kelescope_web/admins_live.ex:235
 #, elixir-autogen, elixir-format
 msgid "Créer un compte"
 msgstr "Create an account"
 
-#: lib/kelescope_web/admins_live.ex:176
+#: lib/kelescope_web/admins_live.ex:173
 #, elixir-autogen, elixir-format
 msgid "Dernière connexion"
 msgstr "Last sign-in"
 
-#: lib/kelescope_web/admins_live.ex:209
+#: lib/kelescope_web/admins_live.ex:206
 #, elixir-autogen, elixir-format
 msgid "Désactiver"
 msgstr "Disable"
 
-#: lib/kelescope_web/admins_live.ex:229
+#: lib/kelescope_web/admins_live.ex:227
 #, elixir-autogen, elixir-format
 msgid "Enregistrer"
 msgstr "Save"
@@ -121,18 +121,18 @@ msgstr "Registered on"
 msgid "Expire le"
 msgstr "Expires on"
 
-#: lib/kelescope_web/admins_live.ex:171
-#: lib/kelescope_web/admins_live.ex:240
+#: lib/kelescope_web/admins_live.ex:168
+#: lib/kelescope_web/admins_live.ex:238
 #, elixir-autogen, elixir-format
 msgid "Identifiant"
 msgstr "Identifier"
 
-#: lib/kelescope_web/admins_live.ex:130
+#: lib/kelescope_web/admins_live.ex:127
 #, elixir-autogen, elixir-format
 msgid "Identifiant invalide : a-z, 0-9, . _ -, 2 à 32."
 msgstr "Invalid identifier: a-z, 0-9, . _ -, 2 to 32."
 
-#: lib/kelescope_web/admins_live.ex:137
+#: lib/kelescope_web/admins_live.ex:134
 #, elixir-autogen, elixir-format
 msgid "Il doit rester un administrateur général actif."
 msgstr "One enabled general administrator must remain."
@@ -152,7 +152,7 @@ msgstr "The passkey could not be registered."
 msgid "Le certificat n'a pas pu être émis."
 msgstr "The certificate could not be issued."
 
-#: lib/kelescope_web/admins_live.ex:296
+#: lib/kelescope_web/admins_live.ex:294
 #, elixir-autogen, elixir-format
 msgid "Le compte, ses passkeys et ses postes disparaissent."
 msgstr "The account, its passkeys and its workstations are removed."
@@ -169,7 +169,7 @@ msgstr "Label"
 msgid "Libellé du poste"
 msgstr "Workstation label"
 
-#: lib/kelescope_web/admins_live.ex:164
+#: lib/kelescope_web/admins_live.ex:161
 #, elixir-autogen, elixir-format
 msgid "Masquer"
 msgstr "Hide"
@@ -190,12 +190,12 @@ msgstr "My account"
 msgid "Mot de passe du fichier, affiché une seule fois :"
 msgstr "File password, shown once only:"
 
-#: lib/kelescope_web/admins_live.ex:255
+#: lib/kelescope_web/admins_live.ex:253
 #, elixir-autogen, elixir-format
 msgid "Moyens d'accès de %{id}"
 msgstr "Means of access of %{id}"
 
-#: lib/kelescope_web/admins_live.ex:309
+#: lib/kelescope_web/admins_live.ex:307
 #, elixir-autogen, elixir-format
 msgid "Niveau"
 msgstr "Level"
@@ -211,17 +211,17 @@ msgid "Passkey révoquée."
 msgstr "Passkey revoked."
 
 #: lib/kelescope_web/account_live.ex:150
-#: lib/kelescope_web/admins_live.ex:174
+#: lib/kelescope_web/admins_live.ex:171
 #, elixir-autogen, elixir-format
 msgid "Passkeys"
 msgstr "Passkeys"
 
-#: lib/kelescope_web/admins_live.ex:322
+#: lib/kelescope_web/admins_live.ex:320
 #, elixir-autogen, elixir-format
 msgid "Portée"
 msgstr "Reach"
 
-#: lib/kelescope_web/admins_live.ex:131
+#: lib/kelescope_web/admins_live.ex:128
 #, elixir-autogen, elixir-format
 msgid "Portée invalide."
 msgstr "Invalid reach."
@@ -231,17 +231,17 @@ msgstr "Invalid reach."
 msgid "Poste révoqué."
 msgstr "Workstation revoked."
 
-#: lib/kelescope_web/admins_live.ex:175
+#: lib/kelescope_web/admins_live.ex:172
 #, elixir-autogen, elixir-format
 msgid "Postes"
 msgstr "Workstations"
 
-#: lib/kelescope_web/admins_live.ex:209
+#: lib/kelescope_web/admins_live.ex:206
 #, elixir-autogen, elixir-format
 msgid "Réactiver"
 msgstr "Enable"
 
-#: lib/kelescope_web/admins_live.ex:200
+#: lib/kelescope_web/admins_live.ex:197
 #, elixir-autogen, elixir-format
 msgid "Réinitialiser"
 msgstr "Reset"
@@ -255,8 +255,8 @@ msgstr "Revocation not possible."
 #: lib/kelescope_web/account_live.ex:228
 #: lib/kelescope_web/account_live.ex:273
 #: lib/kelescope_web/account_live.ex:285
-#: lib/kelescope_web/admins_live.ex:266
-#: lib/kelescope_web/admins_live.ex:281
+#: lib/kelescope_web/admins_live.ex:264
+#: lib/kelescope_web/admins_live.ex:279
 #, elixir-autogen, elixir-format
 msgid "Révoquer"
 msgstr "Revoke"
@@ -271,58 +271,58 @@ msgstr "Revoke this workstation"
 msgid "Révoquer cette passkey"
 msgstr "Revoke this passkey"
 
-#: lib/kelescope_web/admins_live.ex:172
-#: lib/kelescope_web/admins_live.ex:192
+#: lib/kelescope_web/admins_live.ex:169
+#: lib/kelescope_web/admins_live.ex:189
 #, elixir-autogen, elixir-format
 msgid "Rôle"
 msgstr "Role"
 
-#: lib/kelescope_web/admins_live.ex:225
+#: lib/kelescope_web/admins_live.ex:223
 #, elixir-autogen, elixir-format
 msgid "Rôle de %{id}"
 msgstr "Role of %{id}"
 
-#: lib/kelescope_web/admins_live.ex:217
-#: lib/kelescope_web/admins_live.ex:294
+#: lib/kelescope_web/admins_live.ex:215
+#: lib/kelescope_web/admins_live.ex:292
 #, elixir-autogen, elixir-format
 msgid "Supprimer"
 msgstr "Delete"
 
-#: lib/kelescope_web/admins_live.ex:290
+#: lib/kelescope_web/admins_live.ex:288
 #, elixir-autogen, elixir-format
 msgid "Supprimer ce compte"
 msgstr "Delete this account"
 
-#: lib/kelescope_web/admins_live.ex:159
+#: lib/kelescope_web/admins_live.ex:156
 #, elixir-autogen, elixir-format
 msgid "Valable %{hours} h. À transmettre par le canal de votre choix."
 msgstr "Valid for %{hours} h. Pass it on through the channel of your choice."
 
 #: lib/kelescope_web/account_live.ex:299
-#: lib/kelescope_web/admins_live.ex:185
+#: lib/kelescope_web/admins_live.ex:182
 #, elixir-autogen, elixir-format
 msgid "actif"
 msgstr "enabled"
 
 #: lib/kelescope_web/account_live.ex:157
 #: lib/kelescope_web/account_live.ex:208
-#: lib/kelescope_web/admins_live.ex:177
+#: lib/kelescope_web/admins_live.ex:174
 #, elixir-autogen, elixir-format
 msgid "actions"
 msgstr "actions"
 
-#: lib/kelescope_web/admins_live.ex:316
-#: lib/kelescope_web/admins_live.ex:339
+#: lib/kelescope_web/admins_live.ex:314
+#: lib/kelescope_web/admins_live.ex:337
 #, elixir-autogen, elixir-format
 msgid "administrateur"
 msgstr "administrator"
 
-#: lib/kelescope_web/admins_live.ex:330
+#: lib/kelescope_web/admins_live.ex:328
 #, elixir-autogen, elixir-format
 msgid "all ou domaines séparés par des virgules"
 msgstr "all, or domains separated by commas"
 
-#: lib/kelescope_web/admins_live.ex:185
+#: lib/kelescope_web/admins_live.ex:182
 #, elixir-autogen, elixir-format
 msgid "désactivé"
 msgstr "disabled"
@@ -332,8 +332,8 @@ msgstr "disabled"
 msgid "expiré"
 msgstr "expired"
 
-#: lib/kelescope_web/admins_live.ex:313
-#: lib/kelescope_web/admins_live.ex:340
+#: lib/kelescope_web/admins_live.ex:311
+#: lib/kelescope_web/admins_live.ex:338
 #, elixir-autogen, elixir-format
 msgid "moniteur"
 msgstr "monitor"
@@ -358,7 +358,7 @@ msgstr "current workstation"
 msgid "révoqué"
 msgstr "revoked"
 
-#: lib/kelescope_web/admins_live.ex:342
+#: lib/kelescope_web/admins_live.ex:340
 #, elixir-autogen, elixir-format
 msgid "tous domaines"
 msgstr "all domains"
@@ -374,7 +374,12 @@ msgid "Émis le"
 msgstr "Issued on"
 
 #: lib/kelescope_web/account_live.ex:207
-#: lib/kelescope_web/admins_live.ex:173
+#: lib/kelescope_web/admins_live.ex:170
 #, elixir-autogen, elixir-format
 msgid "État"
 msgstr "State"
+
+#: lib/kelescope_web/admins_live.ex:96
+#, elixir-autogen, elixir-format
+msgid "Vous ne pouvez pas supprimer votre propre compte."
+msgstr "You cannot delete your own account."

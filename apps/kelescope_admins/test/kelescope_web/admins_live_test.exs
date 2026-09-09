@@ -109,6 +109,34 @@ defmodule KelescopeWeb.AdminsLiveTest do
     assert Auth.fetch_account(other.id) == :error
   end
 
+  test "serves the page in English when the session asks for it", %{conn: conn, admin: admin} do
+    {:ok, view, html} =
+      conn
+      |> Plug.Test.init_test_session(locale: "en")
+      |> live(~p"/admins")
+
+    assert html =~ "Administrator accounts"
+    refute html =~ "Comptes administrateurs"
+
+    assert render_submit(view, "delete", %{"admin_id" => admin.id}) =~
+             "You cannot delete your own account."
+  end
+
+  test "refuses to delete one's own account", %{conn: conn, admin: admin} do
+    # A second global administrator, so the refusal can only come from the
+    # self-deletion rule and not from the last-global-admin invariant.
+    keeper = admin_fixture(:admin, :all)
+    {:ok, view, _html} = live(conn, ~p"/admins")
+
+    refute has_element?(view, ~s|#account-#{admin.id} button[phx-click="ask_delete"]|)
+    assert has_element?(view, ~s|#account-#{keeper.id} button[phx-click="ask_delete"]|)
+
+    html = render_submit(view, "delete", %{"admin_id" => admin.id})
+
+    assert html =~ "Vous ne pouvez pas supprimer votre propre compte."
+    assert {:ok, _account} = Auth.fetch_account(admin.id)
+  end
+
   test "revokes a workstation of another account", %{conn: conn} do
     other = admin_fixture(:monitor, :all)
     {:ok, second} = Auth.issue_certificate(other.id, "poste maison")

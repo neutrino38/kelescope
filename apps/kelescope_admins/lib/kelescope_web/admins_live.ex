@@ -9,6 +9,7 @@ defmodule KelescopeWeb.AdminsLive do
   use KelescopeWeb, {:live_view, KelescopeWeb.Admins.Gettext}
 
   alias Kelescope.Auth
+  alias Kelescope.Auth.Scope
 
   @impl true
   def mount(_params, _session, socket) do
@@ -19,6 +20,7 @@ defmodule KelescopeWeb.AdminsLive do
      |> assign(:error, nil)
      |> assign(:editing, nil)
      |> assign(:pending_delete, nil)
+     |> assign(:current_id, Scope.id(socket.assigns.current_scope))
      |> load_accounts()}
   end
 
@@ -90,9 +92,13 @@ defmodule KelescopeWeb.AdminsLive do
 
   def handle_event("delete", %{"admin_id" => id}, socket) do
     socket =
-      case Auth.delete_account(id) do
-        {:ok, _id} -> assign(socket, :error, nil)
-        {:error, reason} -> assign(socket, :error, error_message(reason))
+      if id == socket.assigns.current_id do
+        assign(socket, :error, gettext("Vous ne pouvez pas supprimer votre propre compte."))
+      else
+        case Auth.delete_account(id) do
+          {:ok, _id} -> assign(socket, :error, nil)
+          {:error, reason} -> assign(socket, :error, error_message(reason))
+        end
       end
 
     {:noreply, socket |> assign(:pending_delete, nil) |> load_accounts()}
@@ -200,6 +206,7 @@ defmodule KelescopeWeb.AdminsLive do
                 {if account.enabled, do: gettext("Désactiver"), else: gettext("Réactiver")}
               </button>
               <button
+                :if={account.id != @current_id}
                 type="button"
                 phx-click="ask_delete"
                 phx-value-id={account.id}

@@ -190,8 +190,13 @@ leur dernière connexion.
 Actions : créer, changer niveau et portée, désactiver et réactiver,
 réinitialiser, révoquer une passkey ou un poste, supprimer.
 
-Un administrateur général ne peut ni se désactiver, ni se supprimer, ni se
-retirer le niveau général. Il en reste toujours au moins un actif.
+Personne ne supprime son propre compte. Le bouton « Supprimer » n'apparaît pas
+sur sa propre ligne. Le `handle_event` refuse en plus l'identifiant du compte
+connecté : un navigateur choisit l'identifiant qu'il envoie.
+
+Il reste toujours au moins un administrateur général actif. Cet invariant, tenu
+par `Kelescope.Auth`, refuse la suppression, la désactivation et le
+déclassement du dernier, quel que soit le demandeur.
 
 La liste se recharge après chaque action de la page. Elle ne suit pas en direct
 les changements faits par une autre session : le hook d'authentification est
