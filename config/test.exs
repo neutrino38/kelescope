@@ -1,5 +1,12 @@
 import Config
 
+# The store is a file, and the supervisor loads it at boot: it has to be wiped
+# before the application starts, not from test_helper.exs.
+auth_test_dir = Path.expand("../tmp/auth_test", __DIR__)
+File.rm_rf!(auth_test_dir)
+
+config :kelescope_core, Kelescope.Auth.Store, dir: auth_test_dir
+
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
 config :kelescope_core, KelescopeWeb.Endpoint,

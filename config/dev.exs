@@ -42,6 +42,8 @@ config :kelescope_core, KelescopeWeb.Endpoint,
 # configured to run both http and https servers on
 # different ports.
 
+config :kelescope_core, Kelescope.Auth.Store, dir: Path.expand("../tmp/auth_dev", __DIR__)
+
 # Enable dev routes for dashboard and mailbox
 config :kelescope_core, dev_routes: true
 

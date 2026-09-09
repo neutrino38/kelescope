@@ -15,6 +15,7 @@ defmodule Kelescope.Application do
       ] ++
         kelixip_stub_child() ++
         [
+          Kelescope.Auth.Store,
           {Kelescope.Kelixip.Link,
            Application.fetch_env!(:kelescope_core, Kelescope.Kelixip.Link)},
           {Kelescope.Kelixip.DomainsLink,
