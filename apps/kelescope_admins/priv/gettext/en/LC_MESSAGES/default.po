@@ -29,7 +29,8 @@ msgstr "Cancel"
 #: lib/kelescope_web/admins_live.ex:139
 #, elixir-autogen, elixir-format
 msgid "C'est la dernière passkey de ce compte."
-msgstr "This is the last passkey of that account."
+msgstr "That is the account's last passkey."
+
 
 #: lib/kelescope_web/admins_live.ex:140
 #, elixir-autogen, elixir-format
@@ -193,7 +194,8 @@ msgstr "File password, shown once only:"
 #: lib/kelescope_web/admins_live.ex:270
 #, elixir-autogen, elixir-format
 msgid "Moyens d'accès de %{id}"
-msgstr "Means of access of %{id}"
+msgstr "%{id}'s means of access"
+
 
 #: lib/kelescope_web/admins_live.ex:324
 #, elixir-autogen, elixir-format
@@ -377,7 +379,8 @@ msgstr "Issued on"
 #: lib/kelescope_web/admins_live.ex:180
 #, elixir-autogen, elixir-format
 msgid "État"
-msgstr "State"
+msgstr "Status"
+
 
 #: lib/kelescope_web/admins_live.ex:105
 #, elixir-autogen, elixir-format

@@ -202,7 +202,8 @@ msgstr "encode"
 #: lib/kelescope_web/scenario_monitor_live.ex:315
 #, elixir-autogen, elixir-format
 msgid "kelixip status: en attente du premier relevé…"
-msgstr "kelixip status: waiting for the first reading…"
+msgstr "kelixip status: waiting for the first poll…"
+
 
 #: lib/kelescope_web/scenario_monitor_live.ex:250
 #, elixir-autogen, elixir-format
