@@ -3,6 +3,8 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
 
   @columns ~w(id domain function script account state event command medias mediaserver outbound)a
 
+  alias Kelescope.Auth.Scope
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -17,7 +19,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
 
     {:ok,
      assign(socket,
-       scenarios: rows,
+       scenarios: visible(rows, socket.assigns.current_scope),
        link_status: status,
        columns: @columns,
        domain_filter: nil,
@@ -51,26 +53,44 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   end
 
   def handle_event("request_shutdown", %{"id" => id}, socket) do
-    {:noreply, assign(socket, :pending_shutdown, String.to_integer(id))}
+    id = String.to_integer(id)
+
+    if may_shut_down?(socket.assigns.scenarios, socket.assigns.current_scope, id),
+      do: {:noreply, assign(socket, :pending_shutdown, id)},
+      else: {:noreply, socket}
   end
 
   def handle_event("cancel_shutdown", _params, socket) do
     {:noreply, assign(socket, :pending_shutdown, nil)}
   end
 
-  def handle_event("confirm_shutdown", %{"admin" => admin, "id" => id}, socket) do
+  def handle_event("confirm_shutdown", %{"id" => id}, socket) do
     id = String.to_integer(id)
-    Kelescope.Kelixip.Control.shutdown_scenario(Kelescope.Kelixip.Link.target_node(), id, admin)
+    scope = socket.assigns.current_scope
+
+    # A hidden button is no protection: the event carries an identifier the
+    # browser chose, so the domain is checked again here.
+    if may_shut_down?(socket.assigns.scenarios, scope, id) do
+      Kelescope.Kelixip.Control.shutdown_scenario(
+        Kelescope.Kelixip.Link.target_node(),
+        id,
+        Scope.id(scope)
+      )
+    end
+
     {:noreply, assign(socket, :pending_shutdown, nil)}
   end
 
   @impl true
   def handle_info({:kelix_monitor, {:snapshot, rows}}, socket) do
-    {:noreply, assign(socket, :scenarios, Map.new(rows, &{&1.id, &1}))}
+    rows = visible(Map.new(rows, &{&1.id, &1}), socket.assigns.current_scope)
+    {:noreply, assign(socket, :scenarios, rows)}
   end
 
   def handle_info({:kelix_monitor, {:upsert, row}}, socket) do
-    {:noreply, update(socket, :scenarios, &Map.put(&1, row.id, row))}
+    if Scope.sees_domain?(socket.assigns.current_scope, Map.get(row, :domain)),
+      do: {:noreply, update(socket, :scenarios, &Map.put(&1, row.id, row))},
+      else: {:noreply, socket}
   end
 
   def handle_info({:kelix_monitor, {:remove, id}}, socket) do
@@ -88,7 +108,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <.nav current={:monitor} locale={@locale} />
+    <.nav current={:monitor} locale={@locale} scope={@current_scope} />
     <div class="p-6">
       <div class={[
         "mb-4 rounded px-3 py-2 text-sm font-medium",
@@ -99,7 +119,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
         kelixip: {@link_status}
       </div>
 
-      <.status_panel status={@kelixip_status} />
+      <.status_panel :if={Scope.global?(@current_scope)} status={@kelixip_status} />
 
       <form id="domain-filter-form" phx-change="filter" class="mb-3 flex items-center gap-2 text-sm">
         <label for="domain-filter">{gettext("Domaine")}</label>
@@ -127,6 +147,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
             <td :for={col <- @columns} class="border-b p-2">{Map.get(row, col)}</td>
             <td class="border-b p-2">
               <button
+                :if={Scope.can?(@current_scope, :shutdown, Map.get(row, :domain))}
                 type="button"
                 phx-click="request_shutdown"
                 phx-value-id={row.id}
@@ -427,6 +448,19 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
 
   defp domains(scenarios),
     do: scenarios |> Map.values() |> Enum.map(& &1.domain) |> Enum.uniq() |> Enum.sort()
+
+  # Filtering happens before the assign, so a row outside the scope never
+  # reaches the socket, let alone the DOM.
+  defp visible(scenarios, scope) do
+    Map.filter(scenarios, fn {_id, row} -> Scope.sees_domain?(scope, Map.get(row, :domain)) end)
+  end
+
+  defp may_shut_down?(scenarios, scope, id) do
+    case Map.fetch(scenarios, id) do
+      {:ok, row} -> Scope.can?(scope, :shutdown, Map.get(row, :domain))
+      :error -> false
+    end
+  end
 
   defp filtered_scenarios(scenarios, nil), do: Enum.sort_by(scenarios, fn {id, _row} -> id end)
 

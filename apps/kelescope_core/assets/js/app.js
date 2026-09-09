@@ -26,13 +26,14 @@ import {hooks as coreHooks} from "phoenix-colocated/kelescope_core"
 import {hooks as monitorHooks} from "phoenix-colocated/kelescope_monitor"
 import {hooks as domainesHooks} from "phoenix-colocated/kelescope_domaines"
 import {hooks as mcuHooks} from "phoenix-colocated/kelescope_mcu"
+import {Passkey, AutoSubmit} from "./passkey"
 import topbar from "../vendor/topbar"
 
 const csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 const liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
-  hooks: {...coreHooks, ...monitorHooks, ...domainesHooks, ...mcuHooks},
+  hooks: {...coreHooks, ...monitorHooks, ...domainesHooks, ...mcuHooks, Passkey, AutoSubmit},
 })
 
 // Show progress bar on live navigation and form submits

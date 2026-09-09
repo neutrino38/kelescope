@@ -35,11 +35,15 @@ defmodule KelescopeWeb.CoreComponents do
   @doc """
   Top navigation between kelescope's pages.
   """
-  attr :current, :atom, required: true, values: [:monitor, :domains, :mcu]
+  attr :current, :atom, required: true, values: [:monitor, :domains, :mcu, :account, :admins]
   attr :locale, :string, default: "fr"
+  attr :scope, :map, default: nil, doc: "the connected administrator's scope"
 
   def nav(assigns) do
     ~H"""
+    <div :if={@scope && @scope.dev?} class="bg-warning px-2 py-1 text-center text-xs font-semibold">
+      {gettext("Mode dev : authentification désactivée")}
+    </div>
     <nav class="flex items-center justify-between gap-4 border-b p-2 text-sm">
       <div class="flex gap-4">
         <.link navigate={~p"/"} class={@current == :monitor && "font-semibold"}>
@@ -53,6 +57,22 @@ defmodule KelescopeWeb.CoreComponents do
         </.link>
       </div>
       <div class="flex items-center gap-3">
+        <div :if={@scope} class="flex items-center gap-2">
+          <.link navigate={~p"/account"} class={@current == :account && "font-semibold"}>
+            {@scope.admin.id}
+          </.link>
+          <span class="text-xs uppercase text-base-content/70">{role_label(@scope)}</span>
+          <.link
+            :if={Kelescope.Auth.Scope.can?(@scope, :manage_accounts)}
+            navigate={~p"/admins"}
+            class={@current == :admins && "font-semibold"}
+          >
+            {gettext("Comptes")}
+          </.link>
+          <.link href={~p"/session"} method="delete" class="btn btn-xs">
+            {gettext("Déconnexion")}
+          </.link>
+        </div>
         <div class="flex items-center gap-1 text-xs uppercase">
           <.link
             href={~p"/locale/fr"}
@@ -89,6 +109,23 @@ defmodule KelescopeWeb.CoreComponents do
       </div>
     </nav>
     """
+  end
+
+  @doc """
+  Level and reach of a scope, as shown in the navigation bar.
+  """
+  def role_label(%{admin: %{level: level, domains: :all}}) do
+    case level do
+      :admin -> gettext("admin / tous domaines")
+      :monitor -> gettext("moniteur / tous domaines")
+    end
+  end
+
+  def role_label(%{admin: %{level: level, domains: domains}}) do
+    case level do
+      :admin -> gettext("admin / %{domains}", domains: Enum.join(domains, ", "))
+      :monitor -> gettext("moniteur / %{domains}", domains: Enum.join(domains, ", "))
+    end
   end
 
   @doc """
@@ -530,17 +567,6 @@ defmodule KelescopeWeb.CoreComponents do
         <h2 class="mb-3 text-sm font-semibold uppercase text-base-content/70">{@title}</h2>
         <div class="mb-3 text-sm">{render_slot(@inner_block)}</div>
         <input :for={{k, v} <- @confirm_values} type="hidden" name={k} value={v} />
-        <label for={"#{@id}-admin"} class="mb-1 block text-xs uppercase text-base-content/70">
-          {gettext("Administrateur")}
-        </label>
-        <input
-          id={"#{@id}-admin"}
-          type="text"
-          name="admin"
-          required
-          class="mb-3 w-full input input-sm"
-          placeholder={gettext("votre nom")}
-        />
         <div class="flex justify-end gap-2">
           <button type="button" phx-click={@cancel_event} class="btn btn-sm">
             {gettext("Annuler")}

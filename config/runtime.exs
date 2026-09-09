@@ -25,6 +25,80 @@ unless config_env() == :prod do
     http: [port: String.to_integer(System.get_env("PORT", "4000"))]
 end
 
+# Authentication (phase 3, ADR-004).
+#
+# KELESCOPE_AUTH_REAL=1 turns the dev mode off and serves HTTPS with a client
+# certificate, the only way to work on the real ceremonies outside production.
+# The :prod branch never sets :auth_dev_mode, so a production release cannot
+# start without authentication, whatever the environment says.
+unless config_env() == :prod do
+  config :kelescope_core,
+         :auth_dev_mode,
+         config_env() == :dev and is_nil(System.get_env("KELESCOPE_AUTH_REAL"))
+end
+
+env_hours = fn name, default ->
+  String.to_integer(System.get_env(name, to_string(default)))
+end
+
+config :kelescope_core, Kelescope.Auth,
+  client_cert_days: env_hours.("KELESCOPE_CLIENT_CERT_DAYS", 365),
+  session_hours: env_hours.("KELESCOPE_SESSION_HOURS", 12),
+  invite_hours: env_hours.("KELESCOPE_INVITE_HOURS", 24)
+
+auth_dir =
+  System.get_env("KELESCOPE_AUTH_DIR") ||
+    cond do
+      config_env() == :prod -> "/var/lib/kelescope/auth"
+      config_env() == :dev -> Path.expand("../tmp/auth_dev", __DIR__)
+      true -> nil
+    end
+
+if auth_dir do
+  config :kelescope_core, Kelescope.Auth.Store, dir: auth_dir
+end
+
+# Bandit only takes its own keys at the top level: every other TLS option goes
+# to Thousand Island's transport.
+#
+# A connection without a certificate must still reach /enroll, and the verdict
+# on the chain belongs to the application, which pins the fingerprint. See
+# ADR-004 and Kelescope.Auth.ClientCert.
+#
+# certificate_authorities: false drops the TLS 1.3 extension of the same name.
+# Sent, it makes browsers abort the handshake with a decode_error before any
+# request. The cost is a certificate picker that lists every client
+# certificate the browser holds instead of only ours.
+client_certificate_options = fn dir ->
+  [
+    verify: :verify_peer,
+    fail_if_no_peer_cert: false,
+    certificate_authorities: false,
+    cacertfile: Path.join(dir, "ca.crt"),
+    verify_fun: {&Kelescope.Auth.ClientCert.verify_fun/3, nil}
+  ]
+end
+
+if config_env() == :dev and System.get_env("KELESCOPE_AUTH_REAL") do
+  # PHX_HOST is the WebAuthn relying party identifier: the browser must reach
+  # this server by exactly that name, so it also drives the URL here. Point
+  # KELESCOPE_SSL_CERTFILE at a certificate valid for that name to work from
+  # another machine; the default suits localhost only.
+  dev_host = System.get_env("PHX_HOST", "localhost")
+  dev_port = String.to_integer(System.get_env("KELESCOPE_HTTPS_PORT", "4001"))
+
+  config :kelescope_core, KelescopeWeb.Endpoint,
+    http: false,
+    url: [host: dev_host, port: dev_port, scheme: "https"],
+    https: [
+      port: dev_port,
+      cipher_suite: :strong,
+      certfile: System.get_env("KELESCOPE_SSL_CERTFILE", "priv/cert/selfsigned.pem"),
+      keyfile: System.get_env("KELESCOPE_SSL_KEYFILE", "priv/cert/selfsigned_key.pem"),
+      thousand_island_options: [transport_options: client_certificate_options.(auth_dir)]
+    ]
+end
+
 # KELIXIP_NODE / KELIXIP_COOKIE point at the kelixip instance to monitor,
 # same convention as kelictl's RELEASE_NODE. Unset in :dev or :test, the
 # link targets this node itself and talks to the local stub instead
@@ -110,7 +184,8 @@ if config_env() == :prod do
       port: https_port,
       cipher_suite: :strong,
       certfile: certfile,
-      keyfile: keyfile
+      keyfile: keyfile,
+      thousand_island_options: [transport_options: client_certificate_options.(auth_dir)]
     ],
     secret_key_base: secret_key_base
 end

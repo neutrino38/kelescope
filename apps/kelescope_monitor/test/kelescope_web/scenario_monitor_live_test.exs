@@ -4,6 +4,10 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
   import Phoenix.LiveViewTest
   import ExUnit.CaptureLog
 
+  setup %{conn: conn} do
+    %{conn: log_in_admin(conn, :admin, :all)}
+  end
+
   test "shows the link status and scenario rows pushed via PubSub", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
 
@@ -129,34 +133,127 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
     refute render(view) =~ "Connexion BDD"
   end
 
-  test "shutting down a scenario asks for confirmation and an admin name, and logs who did it",
-       %{conn: conn} do
-    {:ok, view, html} = live(conn, ~p"/")
+  test "shutting down a scenario asks for confirmation, and logs the connected account", %{
+    conn: conn
+  } do
+    admin = admin_fixture(:admin, :all)
+    {:ok, view, html} = live(log_in(conn, admin), ~p"/")
     refute html =~ "Arrêter le scénario"
 
     html = view |> element("button[phx-value-id='3']") |> render_click()
     assert html =~ "Arrêter le scénario #3"
 
-    # kelixip logs at :info; test config lowers the level to :warning to
-    # keep the suite quiet, so raise it back for the duration of this test.
+    log =
+      at_info_level(fn ->
+        html = view |> form("#shutdown-modal-form") |> render_submit()
+        refute html =~ "Arrêter le scénario #3"
+      end)
+
+    assert log =~ "scenario 3"
+    assert log =~ "admin=#{admin.id}"
+  end
+
+  describe "a monitor limited to domains" do
+    setup %{conn: conn} do
+      %{conn: log_in_admin(conn, :monitor, ["example.com"])}
+    end
+
+    test "sees no row of another domain, not even after a push", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/")
+
+      assert html =~ "example.com"
+      refute html =~ "throwaway.local"
+
+      send(view.pid, {:kelix_monitor, {:upsert, row(99, "throwaway.local")}})
+      refute render(view) =~ "throwaway.local"
+
+      send(view.pid, {:kelix_monitor, {:upsert, row(98, "example.com")}})
+      assert render(view) =~ "intruder"
+    end
+
+    test "gets no action button and no instance-wide panel", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/")
+
+      refute html =~ "phx-click=\"request_shutdown\""
+      refute html =~ "Connexion BDD"
+      refute html =~ "ms1"
+    end
+  end
+
+  describe "an administrator limited to domains" do
+    setup %{conn: conn} do
+      %{conn: log_in_admin(conn, :admin, ["example.com"])}
+    end
+
+    test "refuses a forged shutdown outside its reach", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      send(view.pid, {:kelix_monitor, {:upsert, row(3, "throwaway.local")}})
+
+      log =
+        at_info_level(fn ->
+          render_click(view, "request_shutdown", %{"id" => "3"})
+          render_submit_forged(view, 3)
+        end)
+
+      refute log =~ "scenario 3"
+    end
+
+    test "shuts down a scenario of its own domain", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/")
+
+      log =
+        at_info_level(fn ->
+          render_click(view, "request_shutdown", %{"id" => "1"})
+          view |> form("#shutdown-modal-form") |> render_submit()
+        end)
+
+      assert log =~ "scenario 1"
+    end
+  end
+
+  defp render_submit_forged(view, id) do
+    render_submit(view, "confirm_shutdown", %{"id" => to_string(id)})
+  end
+
+  defp row(id, domain) do
+    %{
+      id: id,
+      domain: domain,
+      function: :calls,
+      script: "demo.exs",
+      account: "intruder",
+      state: "ringing",
+      event: "INVITE",
+      command: "-",
+      medias: "-",
+      mediaserver: "-",
+      outbound: "-"
+    }
+  end
+
+  # kelixip logs at :info; test config lowers the level to :warning to keep the
+  # suite quiet, so raise it back for the duration of the assertion.
+  defp at_info_level(fun) do
     previous_level = Logger.level()
     Logger.configure(level: :info)
 
-    log =
-      try do
-        capture_log(fn ->
-          html =
-            view
-            |> form("#shutdown-modal-form", %{"admin" => "alice-admin"})
-            |> render_submit()
+    try do
+      capture_log(fun)
+    after
+      Logger.configure(level: previous_level)
+    end
+  end
 
-          refute html =~ "Arrêter le scénario #3"
-        end)
-      after
-        Logger.configure(level: previous_level)
-      end
+  test "an account changed elsewhere leaves this page standing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/")
 
-    assert log =~ "scenario 3"
-    assert log =~ "admin=alice-admin"
+    Phoenix.PubSub.broadcast(
+      Kelescope.PubSub,
+      Kelescope.Auth.topic(),
+      {:account_changed, "quelqun-dautre"}
+    )
+
+    assert render(view) =~ "kelixip:"
   end
 end

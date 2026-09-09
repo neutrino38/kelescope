@@ -11,17 +11,12 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/kelescope_web/components/core_components.ex:435
+#: lib/kelescope_web/components/core_components.ex:472
 #, elixir-autogen, elixir-format
 msgid "Actions"
 msgstr ""
 
-#: lib/kelescope_web/components/core_components.ex:534
-#, elixir-autogen, elixir-format
-msgid "Administrateur"
-msgstr "Administrator"
-
-#: lib/kelescope_web/components/core_components.ex:546
+#: lib/kelescope_web/components/core_components.ex:572
 #, elixir-autogen, elixir-format
 msgid "Annuler"
 msgstr "Cancel"
@@ -32,27 +27,27 @@ msgstr "Cancel"
 msgid "Attempting to reconnect"
 msgstr ""
 
-#: lib/kelescope_web/components/core_components.ex:84
+#: lib/kelescope_web/components/core_components.ex:104
 #, elixir-autogen, elixir-format
 msgid "Augmenter la taille du texte"
 msgstr "Increase text size"
 
-#: lib/kelescope_web/components/core_components.ex:549
+#: lib/kelescope_web/components/core_components.ex:575
 #, elixir-autogen, elixir-format
 msgid "Confirmer"
 msgstr "Confirm"
 
-#: lib/kelescope_web/components/core_components.ex:49
+#: lib/kelescope_web/components/core_components.ex:53
 #, elixir-autogen, elixir-format
 msgid "Domaines"
 msgstr "Domains"
 
-#: lib/kelescope_web/components/core_components.ex:76
+#: lib/kelescope_web/components/core_components.ex:96
 #, elixir-autogen, elixir-format
 msgid "Réduire la taille du texte"
 msgstr "Decrease text size"
 
-#: lib/kelescope_web/components/core_components.ex:46
+#: lib/kelescope_web/components/core_components.ex:50
 #, elixir-autogen, elixir-format
 msgid "Scénarios"
 msgstr "Scenarios"
@@ -62,7 +57,7 @@ msgstr "Scenarios"
 msgid "Something went wrong!"
 msgstr ""
 
-#: lib/kelescope_web/components/core_components.ex:71
+#: lib/kelescope_web/components/core_components.ex:91
 #, elixir-autogen, elixir-format
 msgid "Taille du texte"
 msgstr "Text size"
@@ -72,12 +67,229 @@ msgstr "Text size"
 msgid "We can't find the internet"
 msgstr ""
 
-#: lib/kelescope_web/components/core_components.ex:141
+#: lib/kelescope_web/components/core_components.ex:178
 #, elixir-autogen, elixir-format
 msgid "close"
 msgstr ""
 
-#: lib/kelescope_web/components/core_components.ex:542
+#: lib/kelescope_web/live/login_live.ex:115
 #, elixir-autogen, elixir-format
-msgid "votre nom"
-msgstr "your name"
+msgid "Aucune passkey enregistrée"
+msgstr "No passkey registered"
+
+#: lib/kelescope_web/live/login_live.ex:96
+#, elixir-autogen, elixir-format
+msgid "Ce navigateur ne présente aucun certificat kelescope. Enrôlez ce poste avec le code d'invitation fourni par un administrateur général."
+msgstr "This browser presents no kelescope certificate. Enrol this workstation with the invitation code given by a general administrator."
+
+#: lib/kelescope_web/live/login_live.ex:117
+#, elixir-autogen, elixir-format
+msgid "Ce poste est reconnu, mais le compte n'a pas de passkey. Terminez l'enrôlement pour en enregistrer une."
+msgstr "This workstation is known, but the account has no passkey. Finish the enrolment to register one."
+
+#: lib/kelescope_web/live/enroll_live.ex:167
+#, elixir-autogen, elixir-format
+msgid "Certificat émis"
+msgstr "Certificate issued"
+
+#: lib/kelescope_web/live/login_live.ex:85
+#, elixir-autogen, elixir-format
+msgid "Cette instance doit être appelée par le nom %{host}. Une adresse IP ou un autre alias fait échouer la passkey."
+msgstr "This instance must be reached by the name %{host}. An IP address or another alias breaks the passkey ceremony."
+
+#: lib/kelescope_web/live/enroll_live.ex:111
+#, elixir-autogen, elixir-format
+msgid "Code d'invitation"
+msgstr "Invitation code"
+
+#: lib/kelescope_web/components/core_components.ex:70
+#, elixir-autogen, elixir-format
+msgid "Comptes"
+msgstr "Accounts"
+
+#: lib/kelescope_web/live/login_live.ex:24
+#, elixir-autogen, elixir-format
+msgid "Connexion"
+msgstr "Sign in"
+
+#: lib/kelescope_web/live/login_live.ex:82
+#, elixir-autogen, elixir-format
+msgid "Connexion à kelescope"
+msgstr "Sign in to kelescope"
+
+#: lib/kelescope_web/live/enroll_live.ex:115
+#: lib/kelescope_web/live/login_live.ex:142
+#, elixir-autogen, elixir-format
+msgid "Continuer"
+msgstr "Continue"
+
+#: lib/kelescope_web/components/core_components.ex:73
+#, elixir-autogen, elixir-format
+msgid "Déconnexion"
+msgstr "Sign out"
+
+#: lib/kelescope_web/live/enroll_live.ex:134
+#, elixir-autogen, elixir-format
+msgid "Enregistrer la passkey"
+msgstr "Register the passkey"
+
+#: lib/kelescope_web/live/login_live.ex:122
+#, elixir-autogen, elixir-format
+msgid "Enregistrer une passkey"
+msgstr "Register a passkey"
+
+#: lib/kelescope_web/live/enroll_live.ex:119
+#, elixir-autogen, elixir-format
+msgid "Enregistrez la passkey qui prouvera votre identité à chaque connexion."
+msgstr "Register the passkey that will prove who you are at every sign-in."
+
+#: lib/kelescope_web/live/enroll_live.ex:19
+#, elixir-autogen, elixir-format
+msgid "Enrôlement"
+msgstr "Enrolment"
+
+#: lib/kelescope_web/live/enroll_live.ex:100
+#, elixir-autogen, elixir-format
+msgid "Enrôlement d'un poste"
+msgstr "Workstation enrolment"
+
+#: lib/kelescope_web/live/login_live.ex:101
+#, elixir-autogen, elixir-format
+msgid "Enrôler ce poste"
+msgstr "Enrol this workstation"
+
+#: lib/kelescope_web/live/enroll_live.ex:182
+#, elixir-autogen, elixir-format
+msgid "Expire le %{date}."
+msgstr "Expires on %{date}."
+
+#: lib/kelescope_web/live/enroll_live.ex:175
+#, elixir-autogen, elixir-format
+msgid "Fermez complètement le navigateur, puis rouvrez-le : une connexion TLS déjà ouverte ne présente pas le nouveau certificat."
+msgstr "Close the browser completely, then reopen it: a TLS connection already open does not present the new certificate."
+
+#: lib/kelescope_web/live/enroll_live.ex:106
+#, elixir-autogen, elixir-format
+msgid "Identifiant"
+msgstr "Identifier"
+
+#: lib/kelescope_web/live/enroll_live.ex:38
+#, elixir-autogen, elixir-format
+msgid "Identifiant ou code invalide, ou expiré."
+msgstr "Invalid or expired identifier or code."
+
+#: lib/kelescope_web/live/enroll_live.ex:173
+#, elixir-autogen, elixir-format
+msgid "Importez le fichier .p12 dans le navigateur ou le magasin du système."
+msgstr "Import the .p12 file into the browser or the system store."
+
+#: lib/kelescope_web/live/enroll_live.ex:62
+#, elixir-autogen, elixir-format
+msgid "La passkey n'a pas pu être enregistrée."
+msgstr "The passkey could not be registered."
+
+#: lib/kelescope_web/live/login_live.ex:71
+#, elixir-autogen, elixir-format
+msgid "La passkey n'a pas été acceptée."
+msgstr "The passkey was not accepted."
+
+#: lib/kelescope_web/live/enroll_live.ex:93
+#, elixir-autogen, elixir-format
+msgid "Le certificat n'a pas pu être émis."
+msgstr "The certificate could not be issued."
+
+#: lib/kelescope_web/live/login_live.ex:108
+#, elixir-autogen, elixir-format
+msgid "Le certificat présenté n'ouvre aucun accès. Demandez une réinitialisation à un administrateur général."
+msgstr "The certificate presented opens no access. Ask a general administrator for a reset."
+
+#: lib/kelescope_web/live/enroll_live.ex:122
+#, elixir-autogen, elixir-format
+msgid "Libellé de la passkey"
+msgstr "Passkey label"
+
+#: lib/kelescope_web/live/enroll_live.ex:151
+#, elixir-autogen, elixir-format
+msgid "Libellé du poste"
+msgstr "Workstation label"
+
+#: lib/kelescope_web/components/core_components.ex:45
+#, elixir-autogen, elixir-format
+msgid "Mode dev : authentification désactivée"
+msgstr "Dev mode: authentication disabled"
+
+#: lib/kelescope_web/live/enroll_live.ex:169
+#, elixir-autogen, elixir-format
+msgid "Mot de passe du fichier, affiché une seule fois :"
+msgstr "File password, shown once only:"
+
+#: lib/kelescope_web/live/enroll_live.ex:142
+#, elixir-autogen, elixir-format
+msgid "Passer cette étape"
+msgstr "Skip this step"
+
+#: lib/kelescope_web/live/login_live.ex:94
+#, elixir-autogen, elixir-format
+msgid "Poste non enrôlé"
+msgstr "Workstation not enrolled"
+
+#: lib/kelescope_web/live/login_live.ex:127
+#, elixir-autogen, elixir-format
+msgid "Poste reconnu. Confirmez avec votre passkey."
+msgstr "Workstation recognised. Confirm with your passkey."
+
+#: lib/kelescope_web/live/login_live.ex:106
+#, elixir-autogen, elixir-format
+msgid "Poste refusé"
+msgstr "Workstation refused"
+
+#: lib/kelescope_web/live/enroll_live.ex:179
+#, elixir-autogen, elixir-format
+msgid "Revenez sur kelescope et confirmez avec votre passkey."
+msgstr "Come back to kelescope and confirm with your passkey."
+
+#: lib/kelescope_web/live/login_live.ex:129
+#, elixir-autogen, elixir-format
+msgid "Se connecter"
+msgstr "Sign in"
+
+#: lib/kelescope_web/live/enroll_live.ex:148
+#, elixir-autogen, elixir-format
+msgid "Téléchargez maintenant le certificat de ce poste."
+msgstr "Now download this workstation's certificate."
+
+#: lib/kelescope_web/components/core_components.ex:126
+#, elixir-autogen, elixir-format
+msgid "admin / %{domains}"
+msgstr "admin / %{domains}"
+
+#: lib/kelescope_web/components/core_components.ex:119
+#, elixir-autogen, elixir-format
+msgid "admin / tous domaines"
+msgstr "admin / all domains"
+
+#: lib/kelescope_web/live/enroll_live.ex:128
+#: lib/kelescope_web/live/enroll_live.ex:189
+#, elixir-autogen, elixir-format
+msgid "ma passkey"
+msgstr "my passkey"
+
+#: lib/kelescope_web/live/enroll_live.ex:157
+#, elixir-autogen, elixir-format
+msgid "mon poste"
+msgstr "my workstation"
+
+#: lib/kelescope_web/components/core_components.ex:127
+#, elixir-autogen, elixir-format
+msgid "moniteur / %{domains}"
+msgstr "monitor / %{domains}"
+
+#: lib/kelescope_web/components/core_components.ex:120
+#, elixir-autogen, elixir-format
+msgid "moniteur / tous domaines"
+msgstr "monitor / all domains"
+
+#: lib/kelescope_web/live/enroll_live.ex:162
+#, elixir-autogen, elixir-format
+msgid "Émettre le certificat"
+msgstr "Issue the certificate"

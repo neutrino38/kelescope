@@ -7,7 +7,9 @@ defmodule KelescopeWeb.Router do
             [
               KelescopeWeb.ScenarioMonitorLive,
               KelescopeWeb.DomainListLive,
-              KelescopeWeb.McuLive
+              KelescopeWeb.McuLive,
+              KelescopeWeb.AccountLive,
+              KelescopeWeb.AdminsLive
             ]}
 
   @locales ~w(fr en)
@@ -20,6 +22,15 @@ defmodule KelescopeWeb.Router do
     plug :protect_from_forgery
     plug :put_secure_browser_headers
     plug :put_locale
+    plug KelescopeWeb.Plugs.Auth, require: :none
+  end
+
+  pipeline :authenticated do
+    plug KelescopeWeb.Plugs.Auth, require: :authenticated
+  end
+
+  pipeline :global_admin do
+    plug KelescopeWeb.Plugs.Auth, require: :manage_accounts
   end
 
   pipeline :api do
@@ -39,11 +50,37 @@ defmodule KelescopeWeb.Router do
     pipe_through :browser
 
     get "/locale/:locale", LocaleController, :update
+    post "/session", SessionController, :create
+    delete "/session", SessionController, :delete
 
-    live_session :default, on_mount: KelescopeWeb.LocaleHook do
+    live_session :public,
+      on_mount: [{KelescopeWeb.AuthHook, :none}, KelescopeWeb.LocaleHook],
+      session: {KelescopeWeb.AuthHook, :peer_session, []} do
+      live "/enroll", EnrollLive
+      live "/login", LoginLive
+    end
+  end
+
+  scope "/", KelescopeWeb do
+    pipe_through [:browser, :authenticated]
+
+    live_session :authenticated,
+      on_mount: [{KelescopeWeb.AuthHook, :authenticated}, KelescopeWeb.LocaleHook],
+      session: {KelescopeWeb.AuthHook, :peer_session, []} do
       live "/", ScenarioMonitorLive
       live "/domains", DomainListLive
       live "/mcu", McuLive
+      live "/account", AccountLive
+    end
+  end
+
+  scope "/", KelescopeWeb do
+    pipe_through [:browser, :global_admin]
+
+    live_session :global_admin,
+      on_mount: [{KelescopeWeb.AuthHook, :manage_accounts}, KelescopeWeb.LocaleHook],
+      session: {KelescopeWeb.AuthHook, :peer_session, []} do
+      live "/admins", AdminsLive
     end
   end
 

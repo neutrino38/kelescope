@@ -1,6 +1,8 @@
 defmodule KelescopeWeb.DomainListLive do
   use KelescopeWeb, {:live_view, KelescopeWeb.Domaines.Gettext}
 
+  alias Kelescope.Auth.Scope
+
   @impl true
   def mount(_params, _session, socket) do
     if connected?(socket) do
@@ -14,7 +16,7 @@ defmodule KelescopeWeb.DomainListLive do
 
     {:ok,
      assign(socket,
-       domains: domains,
+       domains: visible(domains, socket.assigns.current_scope),
        link_status: link_status,
        expanded: nil,
        reload_result: nil,
@@ -27,40 +29,29 @@ defmodule KelescopeWeb.DomainListLive do
   @impl true
   def handle_event("refresh", _params, socket) do
     case Kelescope.Kelixip.Control.list_domains(Kelescope.Kelixip.Link.target_node()) do
-      {:ok, domains} -> {:noreply, assign(socket, :domains, domains)}
-      {:error, _reason} -> {:noreply, socket}
+      {:ok, domains} ->
+        {:noreply, assign(socket, :domains, visible(domains, socket.assigns.current_scope))}
+
+      {:error, _reason} ->
+        {:noreply, socket}
     end
   end
 
   def handle_event("toggle", %{"name" => name}, socket) do
-    expanded = if socket.assigns.expanded == name, do: nil, else: name
+    expanded =
+      cond do
+        not Scope.sees_domain?(socket.assigns.current_scope, name) -> nil
+        socket.assigns.expanded == name -> nil
+        true -> name
+      end
+
     {:noreply, assign(socket, expanded: expanded, reload_result: nil)}
   end
 
   def handle_event("toggle_registrations", %{"name" => name}, socket) do
-    if socket.assigns.expanded_registrations do
-      Phoenix.PubSub.unsubscribe(
-        Kelescope.PubSub,
-        Kelescope.Kelixip.DomainsLink.registrations_topic(socket.assigns.expanded_registrations)
-      )
-    end
-
-    if socket.assigns.expanded_registrations == name do
-      {:noreply, assign(socket, expanded_registrations: nil, registrations: nil)}
-    else
-      Phoenix.PubSub.subscribe(
-        Kelescope.PubSub,
-        Kelescope.Kelixip.DomainsLink.registrations_topic(name)
-      )
-
-      registrations =
-        case Kelescope.Kelixip.DomainsLink.registrations(name) do
-          {:ok, regs} -> {:ok, regs}
-          {:error, reason} -> {:error, reason}
-        end
-
-      {:noreply, assign(socket, expanded_registrations: name, registrations: registrations)}
-    end
+    if Scope.sees_domain?(socket.assigns.current_scope, name),
+      do: toggle_registrations(name, socket),
+      else: {:noreply, socket}
   end
 
   def handle_event(
@@ -68,7 +59,9 @@ defmodule KelescopeWeb.DomainListLive do
         %{"domain" => domain, "aor" => aor, "uri" => uri},
         socket
       ) do
-    {:noreply, assign(socket, :pending_removal, %{domain: domain, aor: aor, uri: uri})}
+    if Scope.can?(socket.assigns.current_scope, :unregister, domain),
+      do: {:noreply, assign(socket, :pending_removal, %{domain: domain, aor: aor, uri: uri})},
+      else: {:noreply, socket}
   end
 
   def handle_event("cancel_remove_contact", _params, socket) do
@@ -77,22 +70,27 @@ defmodule KelescopeWeb.DomainListLive do
 
   def handle_event(
         "confirm_remove_contact",
-        %{"admin" => admin, "domain" => domain, "aor" => aor, "uri" => uri},
+        %{"domain" => domain, "aor" => aor, "uri" => uri},
         socket
       ) do
-    Kelescope.Kelixip.Control.unregister(
-      Kelescope.Kelixip.Link.target_node(),
-      domain,
-      aor,
-      uri,
-      admin
-    )
+    scope = socket.assigns.current_scope
+
+    # The event carries the domain the browser chose: check the scope again.
+    if Scope.can?(scope, :unregister, domain) do
+      Kelescope.Kelixip.Control.unregister(
+        Kelescope.Kelixip.Link.target_node(),
+        domain,
+        aor,
+        uri,
+        Scope.id(scope)
+      )
+    end
 
     {:noreply, assign(socket, :pending_removal, nil)}
   end
 
   def handle_event("reload", %{"name" => name}, socket) do
-    case Enum.find(socket.assigns.domains, &(&1.name == name)) do
+    case reloadable_domain(socket, name) do
       nil ->
         {:noreply, socket}
 
@@ -118,7 +116,7 @@ defmodule KelescopeWeb.DomainListLive do
 
   @impl true
   def handle_info({:kelix_domains, {:snapshot, domains}}, socket) do
-    {:noreply, assign(socket, :domains, domains)}
+    {:noreply, assign(socket, :domains, visible(domains, socket.assigns.current_scope))}
   end
 
   def handle_info({:kelix_domain_counter, domain, kind, count}, socket) do
@@ -151,6 +149,44 @@ defmodule KelescopeWeb.DomainListLive do
     end
   end
 
+  defp toggle_registrations(name, socket) do
+    if socket.assigns.expanded_registrations do
+      Phoenix.PubSub.unsubscribe(
+        Kelescope.PubSub,
+        Kelescope.Kelixip.DomainsLink.registrations_topic(socket.assigns.expanded_registrations)
+      )
+    end
+
+    if socket.assigns.expanded_registrations == name do
+      {:noreply, assign(socket, expanded_registrations: nil, registrations: nil)}
+    else
+      Phoenix.PubSub.subscribe(
+        Kelescope.PubSub,
+        Kelescope.Kelixip.DomainsLink.registrations_topic(name)
+      )
+
+      registrations =
+        case Kelescope.Kelixip.DomainsLink.registrations(name) do
+          {:ok, regs} -> {:ok, regs}
+          {:error, reason} -> {:error, reason}
+        end
+
+      {:noreply, assign(socket, expanded_registrations: name, registrations: registrations)}
+    end
+  end
+
+  # Filtering happens before the assign, so a domain outside the scope never
+  # reaches the socket, let alone the DOM.
+  defp visible(domains, scope) do
+    Enum.filter(domains, &Scope.sees_domain?(scope, &1.name))
+  end
+
+  defp reloadable_domain(socket, name) do
+    if Scope.can?(socket.assigns.current_scope, :reload, name),
+      do: Enum.find(socket.assigns.domains, &(&1.name == name)),
+      else: nil
+  end
+
   defp replace_domain(domains, refreshed) do
     Enum.map(domains, fn
       %{name: name} when name == refreshed.name -> refreshed
@@ -181,7 +217,7 @@ defmodule KelescopeWeb.DomainListLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <.nav current={:domains} locale={@locale} />
+    <.nav current={:domains} locale={@locale} scope={@current_scope} />
     <div class="p-6">
       <div class={[
         "mb-4 rounded px-3 py-2 text-sm font-medium",
@@ -203,6 +239,7 @@ defmodule KelescopeWeb.DomainListLive do
         <.domain_row
           :for={d <- @domains}
           domain={d}
+          scope={@current_scope}
           expanded={@expanded == d.name}
           expanded_registrations={@expanded_registrations == d.name}
           registrations={if @expanded_registrations == d.name, do: @registrations}
@@ -239,6 +276,7 @@ defmodule KelescopeWeb.DomainListLive do
   attr :expanded_registrations, :boolean, required: true
   attr :registrations, :any, default: nil
   attr :reload_result, :map, default: nil
+  attr :scope, :map, required: true
 
   defp domain_row(assigns) do
     ~H"""
@@ -260,10 +298,16 @@ defmodule KelescopeWeb.DomainListLive do
         </button>
       </div>
 
-      <.domain_detail :if={@expanded} domain={@domain} reload_result={@reload_result} />
+      <.domain_detail
+        :if={@expanded}
+        domain={@domain}
+        scope={@scope}
+        reload_result={@reload_result}
+      />
       <.registrations_detail
         :if={@expanded_registrations}
         registrations={@registrations}
+        scope={@scope}
         domain={@domain.name}
       />
     </div>
@@ -272,6 +316,7 @@ defmodule KelescopeWeb.DomainListLive do
 
   attr :domain, :map, required: true
   attr :reload_result, :map, default: nil
+  attr :scope, :map, required: true
 
   defp domain_detail(assigns) do
     ~H"""
@@ -298,7 +343,7 @@ defmodule KelescopeWeb.DomainListLive do
         </:col>
       </.table>
 
-      <div class="mt-3">
+      <div :if={Kelescope.Auth.Scope.can?(@scope, :reload, @domain.name)} class="mt-3">
         <.button phx-click="reload" phx-value-name={@domain.name}>
           {gettext("Recharger les scénarios du domaine")}
         </.button>
@@ -331,6 +376,7 @@ defmodule KelescopeWeb.DomainListLive do
 
   attr :registrations, :any, default: nil
   attr :domain, :string, default: nil
+  attr :scope, :map, required: true
 
   defp registrations_detail(%{registrations: {:error, reason}} = assigns) do
     assigns = assign(assigns, :reason, reason)
@@ -362,6 +408,7 @@ defmodule KelescopeWeb.DomainListLive do
           <:col :let={c} label="instance">{c.instance || "-"}</:col>
           <:action :let={c}>
             <button
+              :if={Kelescope.Auth.Scope.can?(@scope, :unregister, @domain)}
               type="button"
               phx-click="request_remove_contact"
               phx-value-domain={@domain}

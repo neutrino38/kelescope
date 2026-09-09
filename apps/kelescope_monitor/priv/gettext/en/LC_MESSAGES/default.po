@@ -11,215 +11,215 @@ msgstr ""
 "Language: en\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:349
+#: lib/kelescope_web/scenario_monitor_live.ex:370
 #, elixir-autogen, elixir-format
 msgid "(aucun)"
 msgstr "(none)"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:372
+#: lib/kelescope_web/scenario_monitor_live.ex:393
 #, elixir-autogen, elixir-format
 msgid "(vide)"
 msgstr "(empty)"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:208
+#: lib/kelescope_web/scenario_monitor_live.ex:229
 #, elixir-autogen, elixir-format
 msgid "Adresse de contrôle"
 msgstr "Control address"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:226
+#: lib/kelescope_web/scenario_monitor_live.ex:247
 #, elixir-autogen, elixir-format
 msgid "Adresses réseau"
 msgstr "Network addresses"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:135
-#: lib/kelescope_web/scenario_monitor_live.ex:149
+#: lib/kelescope_web/scenario_monitor_live.ex:156
+#: lib/kelescope_web/scenario_monitor_live.ex:170
 #, elixir-autogen, elixir-format
 msgid "Arrêter"
 msgstr "Stop"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:145
+#: lib/kelescope_web/scenario_monitor_live.ex:166
 #, elixir-autogen, elixir-format
 msgid "Arrêter le scénario #%{id}"
 msgstr "Stop scenario #%{id}"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:155
+#: lib/kelescope_web/scenario_monitor_live.ex:176
 #, elixir-autogen, elixir-format
 msgid "Cette action interrompt le scénario en cours."
 msgstr "This action interrupts the ongoing scenario."
 
-#: lib/kelescope_web/scenario_monitor_live.ex:254
+#: lib/kelescope_web/scenario_monitor_live.ex:275
 #, elixir-autogen, elixir-format
 msgid "Codecs audio"
 msgstr "Audio codecs"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:263
+#: lib/kelescope_web/scenario_monitor_live.ex:284
 #, elixir-autogen, elixir-format
 msgid "Codecs vidéo"
 msgstr "Video codecs"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:151
+#: lib/kelescope_web/scenario_monitor_live.ex:172
 #, elixir-autogen, elixir-format
 msgid "Compte"
 msgstr "Account"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:278
+#: lib/kelescope_web/scenario_monitor_live.ex:299
 #, elixir-autogen, elixir-format
 msgid "Conférences en cours"
 msgstr "Ongoing conferences"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:322
+#: lib/kelescope_web/scenario_monitor_live.ex:343
 #, elixir-autogen, elixir-format
 msgid "Connexion BDD"
 msgstr "DB connection"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:105
+#: lib/kelescope_web/scenario_monitor_live.ex:125
 #, elixir-autogen, elixir-format
 msgid "Domaine"
 msgstr "Domain"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:193
+#: lib/kelescope_web/scenario_monitor_live.ex:214
 #, elixir-autogen, elixir-format
 msgid "Fermer"
 msgstr "Close"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:204
+#: lib/kelescope_web/scenario_monitor_live.ex:225
 #, elixir-autogen, elixir-format
 msgid "Module"
 msgstr "Module"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:378
+#: lib/kelescope_web/scenario_monitor_live.ex:399
 #, elixir-autogen, elixir-format
 msgid "Modules"
 msgstr "Modules"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:187
+#: lib/kelescope_web/scenario_monitor_live.ex:208
 #, elixir-autogen, elixir-format
 msgid "Médiaserveur"
 msgstr "Media server"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:200
+#: lib/kelescope_web/scenario_monitor_live.ex:221
 #, elixir-autogen, elixir-format
 msgid "Nom"
 msgstr "Name"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:306
+#: lib/kelescope_web/scenario_monitor_live.ex:327
 #, elixir-autogen, elixir-format
 msgid "Nœud"
 msgstr "Node"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:355
+#: lib/kelescope_web/scenario_monitor_live.ex:376
 #, elixir-autogen, elixir-format
 msgid "Pool médias"
 msgstr "Media pool"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:218
+#: lib/kelescope_web/scenario_monitor_live.ex:239
 #, elixir-autogen, elixir-format
 msgid "Santé"
 msgstr "Health"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:241
+#: lib/kelescope_web/scenario_monitor_live.ex:262
 #, elixir-autogen, elixir-format
 msgid "Serveur"
 msgstr "Server"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:314
+#: lib/kelescope_web/scenario_monitor_live.ex:335
 #, elixir-autogen, elixir-format
 msgid "Sessions actives"
 msgstr "Active sessions"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:272
+#: lib/kelescope_web/scenario_monitor_live.ex:293
 #, elixir-autogen, elixir-format
 msgid "Sécurité"
 msgstr "Security"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:107
+#: lib/kelescope_web/scenario_monitor_live.ex:127
 #, elixir-autogen, elixir-format
 msgid "Tous"
 msgstr "All"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:244
+#: lib/kelescope_web/scenario_monitor_live.ex:265
 #, elixir-autogen, elixir-format
 msgid "Version"
 msgstr "Version"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:318
+#: lib/kelescope_web/scenario_monitor_live.ex:339
 #, elixir-autogen, elixir-format
 msgid "Version domaines"
 msgstr "Domains version"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:122
+#: lib/kelescope_web/scenario_monitor_live.ex:142
 #, elixir-autogen, elixir-format
 msgid "actions"
 msgstr "actions"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:214
+#: lib/kelescope_web/scenario_monitor_live.ex:235
 #, elixir-autogen, elixir-format
 msgid "activé"
 msgstr "enabled"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:329
+#: lib/kelescope_web/scenario_monitor_live.ex:350
 #, elixir-autogen, elixir-format
 msgid "connectée"
 msgstr "connected"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:152
+#: lib/kelescope_web/scenario_monitor_live.ex:173
 #, elixir-autogen, elixir-format
 msgid "domaine"
 msgstr "domain"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:259
-#: lib/kelescope_web/scenario_monitor_live.ex:268
+#: lib/kelescope_web/scenario_monitor_live.ex:280
+#: lib/kelescope_web/scenario_monitor_live.ex:289
 #, elixir-autogen, elixir-format
 msgid "décodage"
 msgstr "decode"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:329
+#: lib/kelescope_web/scenario_monitor_live.ex:350
 #, elixir-autogen, elixir-format
 msgid "déconnectée"
 msgstr "disconnected"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:233
+#: lib/kelescope_web/scenario_monitor_live.ex:254
 #, elixir-autogen, elixir-format
 msgid "défaut"
 msgstr "default"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:214
+#: lib/kelescope_web/scenario_monitor_live.ex:235
 #, elixir-autogen, elixir-format
 msgid "désactivé"
 msgstr "disabled"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:220
+#: lib/kelescope_web/scenario_monitor_live.ex:241
 #, elixir-autogen, elixir-format
 msgid "en défaut"
 msgstr "faulty"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:256
-#: lib/kelescope_web/scenario_monitor_live.ex:265
+#: lib/kelescope_web/scenario_monitor_live.ex:277
+#: lib/kelescope_web/scenario_monitor_live.ex:286
 #, elixir-autogen, elixir-format
 msgid "encodage"
 msgstr "encode"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:293
+#: lib/kelescope_web/scenario_monitor_live.ex:314
 #, elixir-autogen, elixir-format
 msgid "kelixip status: en attente du premier relevé…"
 msgstr "kelixip status: waiting for the first reading…"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:228
+#: lib/kelescope_web/scenario_monitor_live.ex:249
 #, elixir-autogen, elixir-format
 msgid "non disponibles"
 msgstr "not available"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:220
+#: lib/kelescope_web/scenario_monitor_live.ex:241
 #, elixir-autogen, elixir-format
 msgid "opérationnel"
 msgstr "operational"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:336
+#: lib/kelescope_web/scenario_monitor_live.ex:357
 #, elixir-autogen, elixir-format
 msgid "Écouteurs"
 msgstr "Listeners"
 
-#: lib/kelescope_web/scenario_monitor_live.ex:212
+#: lib/kelescope_web/scenario_monitor_live.ex:233
 #, elixir-autogen, elixir-format
 msgid "État"
 msgstr "Status"

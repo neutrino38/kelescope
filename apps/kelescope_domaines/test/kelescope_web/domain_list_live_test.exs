@@ -4,6 +4,11 @@ defmodule KelescopeWeb.DomainListLiveTest do
   import Phoenix.LiveViewTest
   import ExUnit.CaptureLog
 
+  setup %{conn: conn} do
+    admin = admin_fixture(:admin, :all)
+    %{conn: log_in(conn, admin), admin: admin}
+  end
+
   test "lists the served domains with their live counters", %{conn: conn} do
     {:ok, _view, html} = live(conn, ~p"/domains")
 
@@ -111,8 +116,9 @@ defmodule KelescopeWeb.DomainListLiveTest do
     assert render(view) =~ "sip:dave@10.0.0.40:5060"
   end
 
-  test "removing a contact asks for confirmation and an admin name, and logs who did it", %{
-    conn: conn
+  test "removing a contact asks for confirmation, and logs the connected account", %{
+    conn: conn,
+    admin: admin
   } do
     {:ok, view, _html} = live(conn, ~p"/domains")
     html = view |> element("button", "1 enregistrements") |> render_click()
@@ -134,7 +140,7 @@ defmodule KelescopeWeb.DomainListLiveTest do
         capture_log(fn ->
           html =
             view
-            |> form("#remove-contact-modal-form", %{"admin" => "alice-admin"})
+            |> form("#remove-contact-modal-form")
             |> render_submit()
 
           refute html =~ "Désenregistrer ce contact"
@@ -144,7 +150,7 @@ defmodule KelescopeWeb.DomainListLiveTest do
       end
 
     assert log =~ "domain=throwaway.local aor=carol uri=sip:carol@10.0.0.30:5060"
-    assert log =~ "admin=alice-admin"
+    assert log =~ "admin=#{admin.id}"
   end
 
   test "a contact removed by kelixip disappears from the registrations list", %{conn: conn} do
@@ -155,5 +161,90 @@ defmodule KelescopeWeb.DomainListLiveTest do
     send(view.pid, {:kelix_registrations, "example.com", {:remove, "alice"}})
 
     refute render(view) =~ "sip:alice@10.0.0.9:5060"
+  end
+
+  describe "a monitor limited to domains" do
+    setup %{conn: conn} do
+      %{conn: log_in_admin(conn, :monitor, ["example.com"])}
+    end
+
+    test "sees only its own domains, counters included", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/domains")
+
+      assert html =~ "example.com"
+      refute html =~ "throwaway.local"
+
+      send(view.pid, {:kelix_domain_counter, "throwaway.local", :active_calls, 9})
+      send(view.pid, {:kelix_domain_counter, "example.com", :active_calls, 8})
+
+      html = render(view)
+      refute html =~ "throwaway.local"
+      assert html =~ "8 sessions actives"
+    end
+
+    test "gets no reload and no unregister button", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/domains")
+
+      html = view |> element("button", "example.com") |> render_click()
+      refute html =~ "Recharger les scénarios du domaine"
+
+      html = view |> element("button", "5 enregistrements") |> render_click()
+      assert html =~ "sip:alice@10.0.0.9:5060"
+      refute html =~ "Désenregistrer"
+    end
+  end
+
+  describe "an administrator limited to domains" do
+    setup %{conn: conn} do
+      %{conn: log_in_admin(conn, :admin, ["example.com"])}
+    end
+
+    test "cannot unregister a contact of a domain out of reach", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/domains")
+
+      log =
+        at_info_level(fn ->
+          render_submit(view, "confirm_remove_contact", %{
+            "domain" => "throwaway.local",
+            "aor" => "carol",
+            "uri" => "sip:carol@10.0.0.30:5060"
+          })
+        end)
+
+      refute log =~ "domain=throwaway.local"
+    end
+
+    test "keeps the unregister button on its own domain", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/domains")
+
+      html = view |> element("button", "5 enregistrements") |> render_click()
+
+      assert html =~ "Désenregistrer"
+    end
+  end
+
+  # kelixip logs at :info; test config lowers the level to :warning to keep the
+  # suite quiet, so raise it back for the duration of the assertion.
+  defp at_info_level(fun) do
+    previous_level = Logger.level()
+    Logger.configure(level: :info)
+
+    try do
+      capture_log(fun)
+    after
+      Logger.configure(level: previous_level)
+    end
+  end
+
+  test "an account changed elsewhere leaves this page standing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/domains")
+
+    Phoenix.PubSub.broadcast(
+      Kelescope.PubSub,
+      Kelescope.Auth.topic(),
+      {:account_changed, "quelqun-dautre"}
+    )
+
+    assert render(view) =~ "Domaines"
   end
 end

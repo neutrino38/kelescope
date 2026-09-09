@@ -1,6 +1,7 @@
 defmodule KelescopeWeb.McuLive do
   use KelescopeWeb, {:live_view, KelescopeWeb.Mcu.Gettext}
 
+  alias Kelescope.Auth.Scope
   alias Kelescope.Kelixip.Control
   alias Kelescope.Kelixip.Link
 
@@ -57,9 +58,11 @@ defmodule KelescopeWeb.McuLive do
 
     {_status, domains} = Kelescope.Kelixip.DomainsLink.snapshot()
 
+    scope = socket.assigns.current_scope
+
     {:ok,
      assign(socket,
-       conferences: Kelescope.Kelixip.ConferencesPoller.snapshot(),
+       conferences: visible(Kelescope.Kelixip.ConferencesPoller.snapshot(), scope),
        expanded: nil,
        detail: nil,
        form_mode: nil,
@@ -72,7 +75,7 @@ defmodule KelescopeWeb.McuLive do
        video_sizes: @video_sizes,
        video_codecs: @video_codecs,
        vad_modes: @vad_modes,
-       domain_names: domains |> Enum.map(& &1.name) |> Enum.sort()
+       domain_names: scope |> Scope.visible_domains(Enum.map(domains, & &1.name)) |> Enum.sort()
      )}
   end
 
@@ -117,15 +120,10 @@ defmodule KelescopeWeb.McuLive do
         {:noreply, assign(socket, pending_create: params, form_mode: nil, form_error: nil)}
 
       {:edit, uid} ->
-        case Control.update_conference(Link.target_node(), uid, form_attrs(params)) do
-          {:ok, _conf} ->
-            {:noreply,
-             socket
-             |> assign(form_mode: nil, form_error: nil, detail: fetch_conference(uid))
-             |> refresh_list()}
-
-          {:error, reason} ->
-            {:noreply, assign(socket, :form_error, inspect(reason))}
+        if not may?(socket, uid) do
+          {:noreply, assign(socket, form_mode: nil, error: forbidden_message())}
+        else
+          update_conference(socket, uid, params)
         end
     end
   end
@@ -135,47 +133,48 @@ defmodule KelescopeWeb.McuLive do
   end
 
   def handle_event("confirm_create_conference", params, socket) do
-    {admin, raw} = Map.pop(params, "admin")
+    scope = socket.assigns.current_scope
 
     socket =
-      case Control.create_conference(Link.target_node(), form_attrs(raw), admin) do
-        {:ok, _reply} ->
-          socket |> assign(pending_create: nil, error: nil) |> refresh_list()
+      cond do
+        not Scope.can?(scope, :conference, Map.get(params, "domain")) ->
+          assign(socket, pending_create: nil, error: forbidden_message())
 
-        {:error, reason} ->
-          assign(socket, pending_create: nil, error: create_error_message(reason))
+        true ->
+          case Control.create_conference(Link.target_node(), form_attrs(params), Scope.id(scope)) do
+            {:ok, _reply} ->
+              socket |> assign(pending_create: nil, error: nil) |> refresh_list()
+
+            {:error, reason} ->
+              assign(socket, pending_create: nil, error: create_error_message(reason))
+          end
       end
 
     {:noreply, socket}
   end
 
   def handle_event("request_delete_conference", %{"uid" => uid}, socket) do
-    {:noreply, assign(socket, :pending_delete, uid)}
+    if may?(socket, uid),
+      do: {:noreply, assign(socket, :pending_delete, uid)},
+      else: {:noreply, socket}
   end
 
   def handle_event("cancel_delete_conference", _params, socket) do
     {:noreply, assign(socket, :pending_delete, nil)}
   end
 
-  def handle_event("confirm_delete_conference", %{"admin" => admin, "uid" => uid}, socket) do
-    socket =
-      case Control.delete_conference(Link.target_node(), uid, admin) do
-        {:ok, _} ->
-          socket
-          |> assign(pending_delete: nil, error: nil)
-          |> maybe_clear_expanded(uid)
-          |> refresh_list()
-
-        {:error, reason} ->
-          assign(socket, pending_delete: nil, error: delete_error_message(reason))
-      end
-
-    {:noreply, socket}
+  def handle_event("confirm_delete_conference", %{"uid" => uid}, socket) do
+    if not may?(socket, uid) do
+      {:noreply, assign(socket, pending_delete: nil, error: forbidden_message())}
+    else
+      delete_conference(socket, uid)
+    end
   end
 
   def handle_event("start_recording", %{"uid" => uid}, socket) do
     socket =
-      case Control.start_recording(Link.target_node(), uid) do
+      case may?(socket, uid) && Control.start_recording(Link.target_node(), uid) do
+        false -> assign(socket, :error, forbidden_message())
         {:ok, _} -> socket |> assign(detail: fetch_conference(uid), error: nil) |> refresh_list()
         {:error, reason} -> assign(socket, :error, recording_error_message(reason))
       end
@@ -185,7 +184,8 @@ defmodule KelescopeWeb.McuLive do
 
   def handle_event("stop_recording", %{"uid" => uid}, socket) do
     socket =
-      case Control.stop_recording(Link.target_node(), uid) do
+      case may?(socket, uid) && Control.stop_recording(Link.target_node(), uid) do
+        false -> assign(socket, :error, forbidden_message())
         {:ok, _} -> socket |> assign(detail: fetch_conference(uid), error: nil) |> refresh_list()
         {:error, reason} -> assign(socket, :error, recording_error_message(reason))
       end
@@ -195,7 +195,7 @@ defmodule KelescopeWeb.McuLive do
 
   @impl true
   def handle_info({:kelixip_conferences, conferences}, socket) do
-    {:noreply, assign(socket, :conferences, conferences)}
+    {:noreply, assign(socket, :conferences, visible(conferences, socket.assigns.current_scope))}
   end
 
   defp fetch_conference(uid) do
@@ -212,11 +212,71 @@ defmodule KelescopeWeb.McuLive do
     end
   end
 
+  defp update_conference(socket, uid, params) do
+    case Control.update_conference(Link.target_node(), uid, form_attrs(params)) do
+      {:ok, _conf} ->
+        {:noreply,
+         socket
+         |> assign(form_mode: nil, form_error: nil, detail: fetch_conference(uid))
+         |> refresh_list()}
+
+      {:error, reason} ->
+        {:noreply, assign(socket, :form_error, inspect(reason))}
+    end
+  end
+
+  defp delete_conference(socket, uid) do
+    socket =
+      case Control.delete_conference(
+             Link.target_node(),
+             uid,
+             Scope.id(socket.assigns.current_scope)
+           ) do
+        {:ok, _} ->
+          socket
+          |> assign(pending_delete: nil, error: nil)
+          |> maybe_clear_expanded(uid)
+          |> refresh_list()
+
+        {:error, reason} ->
+          assign(socket, pending_delete: nil, error: delete_error_message(reason))
+      end
+
+    {:noreply, socket}
+  end
+
+  defp forbidden_message,
+    do: gettext("Action refusée : ce domaine est hors de votre portée.")
+
   defp refresh_list(socket) do
     case Control.list_conferences(Link.target_node()) do
-      {:ok, conferences} -> assign(socket, :conferences, conferences)
-      {:error, _reason} -> socket
+      {:ok, conferences} ->
+        assign(socket, :conferences, visible(conferences, socket.assigns.current_scope))
+
+      {:error, _reason} ->
+        socket
     end
+  end
+
+  # Filtering happens before the assign, so a conference outside the scope never
+  # reaches the socket, let alone the DOM.
+  defp visible(nil, _scope), do: nil
+
+  defp visible(conferences, scope) do
+    Enum.filter(conferences, &Scope.sees_domain?(scope, Map.get(&1, :domain)))
+  end
+
+  defp conference_domain(socket, uid) do
+    case Enum.find(socket.assigns.conferences || [], &(&1.uid == uid)) do
+      nil -> nil
+      conf -> Map.get(conf, :domain)
+    end
+  end
+
+  # A hidden button is no protection: the event carries a uid or a domain the
+  # browser chose, so the scope is checked again here.
+  defp may?(socket, uid) do
+    Scope.can?(socket.assigns.current_scope, :conference, conference_domain(socket, uid))
   end
 
   defp maybe_clear_expanded(%{assigns: %{expanded: uid}} = socket, uid),
@@ -395,14 +455,19 @@ defmodule KelescopeWeb.McuLive do
   @impl true
   def render(assigns) do
     ~H"""
-    <.nav current={:mcu} locale={@locale} />
+    <.nav current={:mcu} locale={@locale} scope={@current_scope} />
     <div class="p-6">
       <p :if={@error} class="mb-4 rounded bg-error/15 px-3 py-2 text-sm text-error">{@error}</p>
 
       <.header>
         MCU
         <:actions>
-          <.button phx-click="new_conference">{gettext("Nouvelle conférence")}</.button>
+          <.button
+            :if={Enum.any?(@domain_names, &Scope.can?(@current_scope, :conference, &1))}
+            phx-click="new_conference"
+          >
+            {gettext("Nouvelle conférence")}
+          </.button>
         </:actions>
       </.header>
 
@@ -412,6 +477,7 @@ defmodule KelescopeWeb.McuLive do
         <.conference_row
           :for={c <- @conferences}
           conf={c}
+          scope={@current_scope}
           expanded={@expanded == c.uid}
           detail={if @expanded == c.uid, do: @detail}
         />
@@ -462,6 +528,7 @@ defmodule KelescopeWeb.McuLive do
   attr :conf, :map, required: true
   attr :expanded, :boolean, required: true
   attr :detail, :any, default: nil
+  attr :scope, :map, required: true
 
   defp conference_row(assigns) do
     ~H"""
@@ -481,6 +548,7 @@ defmodule KelescopeWeb.McuLive do
         <div class="flex items-center gap-2">
           <span :if={@conf.recording} class="badge badge-error badge-sm">REC</span>
           <button
+            :if={Scope.can?(@scope, :conference, Map.get(@conf, :domain))}
             type="button"
             phx-click="request_delete_conference"
             phx-value-uid={@conf.uid}
@@ -491,12 +559,17 @@ defmodule KelescopeWeb.McuLive do
         </div>
       </div>
 
-      <.conference_detail :if={@expanded} detail={@detail} />
+      <.conference_detail
+        :if={@expanded}
+        detail={@detail}
+        may_act={Scope.can?(@scope, :conference, Map.get(@conf, :domain))}
+      />
     </div>
     """
   end
 
   attr :detail, :any, default: nil
+  attr :may_act, :boolean, default: false
 
   defp conference_detail(%{detail: nil} = assigns) do
     ~H"""
@@ -558,7 +631,7 @@ defmodule KelescopeWeb.McuLive do
           {gettext("Enregistrement en cours")} — {@full.recording}
         </span>
         <button
-          :if={@full.recording}
+          :if={@may_act and !!@full.recording}
           type="button"
           phx-click="stop_recording"
           phx-value-uid={@full.uid}
@@ -567,7 +640,7 @@ defmodule KelescopeWeb.McuLive do
           {gettext("Arrêter l'enregistrement")}
         </button>
         <button
-          :if={!@full.recording}
+          :if={@may_act and !@full.recording}
           type="button"
           phx-click="start_recording"
           phx-value-uid={@full.uid}
@@ -596,6 +669,7 @@ defmodule KelescopeWeb.McuLive do
           {gettext("Rafraîchir")}
         </button>
         <button
+          :if={@may_act}
           type="button"
           phx-click="edit_conference"
           phx-value-uid={@full.uid}

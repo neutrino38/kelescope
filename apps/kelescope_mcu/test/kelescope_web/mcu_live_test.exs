@@ -4,6 +4,11 @@ defmodule KelescopeWeb.McuLiveTest do
   import Phoenix.LiveViewTest
   import ExUnit.CaptureLog
 
+  setup %{conn: conn} do
+    admin = admin_fixture(:admin, :all)
+    %{conn: log_in(conn, admin), admin: admin}
+  end
+
   test "sert la page en anglais, socle et partie, quand la session le demande", %{conn: conn} do
     {:ok, _view, html} =
       conn
@@ -122,7 +127,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view
-    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> form("#create-conference-modal-form")
     |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-did-conf") |> render_click()
@@ -145,7 +150,7 @@ defmodule KelescopeWeb.McuLiveTest do
 
     html =
       view
-      |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+      |> form("#create-conference-modal-form")
       |> render_submit()
 
     assert html =~ "DID est déjà utilisé"
@@ -177,9 +182,8 @@ defmodule KelescopeWeb.McuLiveTest do
     assert html =~ "board-review-20260908.mp4"
   end
 
-  test "creating then destroying a conference requires an admin name, traced by kelixip", %{
-    conn: conn
-  } do
+  test "creating then destroying a conference is traced by kelixip under the connected account",
+       %{conn: conn, admin: admin} do
     {:ok, view, html} = live(conn, ~p"/mcu")
     refute html =~ "temp-e2e-conf"
 
@@ -203,7 +207,7 @@ defmodule KelescopeWeb.McuLiveTest do
         capture_log(fn ->
           html =
             view
-            |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+            |> form("#create-conference-modal-form")
             |> render_submit()
 
           assert html =~ "temp-e2e-conf"
@@ -213,7 +217,7 @@ defmodule KelescopeWeb.McuLiveTest do
       end
 
     assert create_log =~ "conference.create domain=example.com"
-    assert create_log =~ "admin=alice-admin"
+    assert create_log =~ "admin=#{admin.id}"
 
     html = view |> element("[phx-click=toggle]", "temp-e2e-conf") |> render_click()
     uid = uid_from_detail(html)
@@ -229,7 +233,7 @@ defmodule KelescopeWeb.McuLiveTest do
         capture_log(fn ->
           html =
             view
-            |> form("#delete-conference-modal-form", %{"admin" => "alice-admin"})
+            |> form("#delete-conference-modal-form")
             |> render_submit()
 
           refute html =~ "temp-e2e-conf"
@@ -239,7 +243,7 @@ defmodule KelescopeWeb.McuLiveTest do
       end
 
     assert delete_log =~ "conference.delete uid=#{uid}"
-    assert delete_log =~ "admin=alice-admin"
+    assert delete_log =~ "admin=#{admin.id}"
   end
 
   test "destroying a non-empty conference reports the conflict instead of crashing", %{
@@ -255,7 +259,7 @@ defmodule KelescopeWeb.McuLiveTest do
 
     html =
       view
-      |> form("#delete-conference-modal-form", %{"admin" => "alice-admin"})
+      |> form("#delete-conference-modal-form")
       |> render_submit()
 
     assert html =~ "encore des participants"
@@ -275,7 +279,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view
-    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> form("#create-conference-modal-form")
     |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-props-conf") |> render_click()
@@ -314,7 +318,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view
-    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> form("#create-conference-modal-form")
     |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-video-conf") |> render_click()
@@ -340,7 +344,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view
-    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> form("#create-conference-modal-form")
     |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-video-props-conf") |> render_click()
@@ -381,7 +385,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view
-    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> form("#create-conference-modal-form")
     |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-vad-conf") |> render_click()
@@ -426,7 +430,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view
-    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> form("#create-conference-modal-form")
     |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-extra-conf") |> render_click()
@@ -472,7 +476,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view
-    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> form("#create-conference-modal-form")
     |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-medias-conf") |> render_click()
@@ -540,7 +544,7 @@ defmodule KelescopeWeb.McuLiveTest do
     })
     |> render_submit()
 
-    view |> form("#create-conference-modal-form", %{"admin" => "alice-admin"}) |> render_submit()
+    view |> form("#create-conference-modal-form") |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-mosaic-conf") |> render_click()
     uid = uid_from_detail(html)
@@ -570,7 +574,7 @@ defmodule KelescopeWeb.McuLiveTest do
     |> render_submit()
 
     view
-    |> form("#create-conference-modal-form", %{"admin" => "alice-admin"})
+    |> form("#create-conference-modal-form")
     |> render_submit()
 
     html = view |> element("[phx-click=toggle]", "temp-rec-conf") |> render_click()
@@ -622,5 +626,106 @@ defmodule KelescopeWeb.McuLiveTest do
   defp uid_from_detail(html) do
     [_, uid] = Regex.run(~r/UID<\/dt>\s*<dd>([^<]+)<\/dd>/, html)
     uid
+  end
+
+  describe "a monitor limited to domains" do
+    setup %{conn: conn} do
+      %{conn: log_in_admin(conn, :monitor, ["throwaway.local"])}
+    end
+
+    test "sees no conference of another domain, not even after a push", %{conn: conn} do
+      {:ok, view, html} = live(conn, ~p"/mcu")
+
+      refute html =~ "standup"
+
+      pushed = [
+        %{
+          uid: "c-pushed",
+          name: "standup",
+          domain: "example.com",
+          mcu: "ms1",
+          participants: 0,
+          layout: %{comp: 1},
+          recording: nil
+        }
+      ]
+
+      send(view.pid, {:kelixip_conferences, pushed})
+      refute render(view) =~ "standup"
+    end
+
+    test "gets no create, destroy or recording button", %{conn: conn} do
+      {:ok, _view, html} = live(conn, ~p"/mcu")
+
+      refute html =~ "Nouvelle conférence"
+      refute html =~ "request_delete_conference"
+    end
+  end
+
+  describe "an administrator limited to domains" do
+    setup %{conn: conn} do
+      %{conn: log_in_admin(conn, :admin, ["throwaway.local"])}
+    end
+
+    test "refuses a forged destruction outside its reach", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/mcu")
+
+      log =
+        at_info_level(fn ->
+          render_submit(view, "confirm_delete_conference", %{"uid" => "c-standup"})
+        end)
+
+      refute log =~ "c-standup"
+      assert render(view) =~ "hors de votre portée"
+    end
+
+    test "refuses a forged creation outside its reach", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/mcu")
+
+      log =
+        at_info_level(fn ->
+          render_submit(view, "confirm_create_conference", %{
+            "domain" => "example.com",
+            "name" => "forgée",
+            "max_participants" => "4"
+          })
+        end)
+
+      refute log =~ "forgée"
+      assert render(view) =~ "hors de votre portée"
+    end
+
+    test "refuses a forged recording outside its reach", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/mcu")
+
+      render_click(view, "start_recording", %{"uid" => "c-standup"})
+
+      assert render(view) =~ "hors de votre portée"
+    end
+  end
+
+  # kelixip logs at :info; test config lowers the level to :warning to keep the
+  # suite quiet, so raise it back for the duration of the assertion.
+  defp at_info_level(fun) do
+    previous_level = Logger.level()
+    Logger.configure(level: :info)
+
+    try do
+      capture_log(fun)
+    after
+      Logger.configure(level: previous_level)
+    end
+  end
+
+  test "an account changed elsewhere leaves this page standing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/mcu")
+
+    Phoenix.PubSub.broadcast(
+      Kelescope.PubSub,
+      Kelescope.Auth.topic(),
+      {:account_changed, "quelqun-dautre"}
+    )
+
+    assert render(view) =~ "MCU"
   end
 end
