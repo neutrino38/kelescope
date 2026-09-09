@@ -29,7 +29,8 @@ defmodule KelescopeWeb.AdminsLiveTest do
       render_submit(view, "create", %{
         "admin_id" => id,
         "level" => "monitor",
-        "scope" => "a.example.com, b.example.com"
+        "reach" => "domains",
+        "domains" => ["example.com", "test.local"]
       })
 
     assert html =~ "Code d&#39;invitation de #{id}"
@@ -38,7 +39,7 @@ defmodule KelescopeWeb.AdminsLiveTest do
     code = code_from(html)
     assert {:ok, account} = Auth.fetch_account(id)
     assert account.level == :monitor
-    assert account.scope == ["a.example.com", "b.example.com"]
+    assert account.scope == ["example.com", "test.local"]
     assert {:ok, _} = Auth.redeem_invitation(id, code)
 
     assert render_click(view, "dismiss_invitation") =~ id
@@ -80,12 +81,61 @@ defmodule KelescopeWeb.AdminsLiveTest do
     render_submit(view, "update_role", %{
       "admin_id" => other.id,
       "level" => "admin",
-      "scope" => "a.example.com"
+      "reach" => "domains",
+      "domains" => ["example.com"]
     })
 
     assert {:ok, account} = Auth.fetch_account(other.id)
     assert account.level == :admin
-    assert account.scope == ["a.example.com"]
+    assert account.scope == ["example.com"]
+  end
+
+  test "offers the domains kelixip serves, instead of asking for typing", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/admins")
+
+    for name <- ["example.com", "test.local", "throwaway.local"] do
+      assert has_element?(view, ~s|input[type="checkbox"][name="domains[]"][value="#{name}"]|)
+    end
+
+    refute has_element?(view, ~s|input[name="scope"]|)
+  end
+
+  test "gives the whole instance when that reach is chosen", %{conn: conn} do
+    id = "created-#{System.unique_integer([:positive])}"
+    {:ok, view, _html} = live(conn, ~p"/admins")
+
+    render_submit(view, "create", %{
+      "admin_id" => id,
+      "level" => "admin",
+      "reach" => "all",
+      "domains" => ["example.com"]
+    })
+
+    assert {:ok, %{scope: :all}} = Auth.fetch_account(id)
+  end
+
+  test "refuses a scope with no domain ticked", %{conn: conn} do
+    id = "created-#{System.unique_integer([:positive])}"
+    {:ok, view, _html} = live(conn, ~p"/admins")
+
+    html = render_submit(view, "create", %{"admin_id" => id, "level" => "monitor"})
+
+    assert html =~ "Portée invalide."
+    assert Auth.fetch_account(id) == :error
+  end
+
+  test "keeps a domain that kelixip no longer serves visible and ticked", %{conn: conn} do
+    other = admin_fixture(:monitor, ["example.com", "gone.example.com"])
+    {:ok, view, _html} = live(conn, ~p"/admins")
+
+    render_click(view, "edit", %{"id" => other.id})
+
+    assert has_element?(
+             view,
+             ~s|input[type="checkbox"][value="gone.example.com"][checked]|
+           )
+
+    assert render(view) =~ "non servi"
   end
 
   test "disables then re-enables an account", %{conn: conn} do

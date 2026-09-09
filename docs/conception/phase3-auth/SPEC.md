@@ -190,6 +190,16 @@ leur dernière connexion.
 Actions : créer, changer niveau et portée, désactiver et réactiver,
 réinitialiser, révoquer une passkey ou un poste, supprimer.
 
+La portée se choisit, elle ne se tape pas. Un bouton radio dit « toute
+l'instance » ou « domaines choisis », puis une case à cocher par domaine servi,
+lue dans `Kelescope.Kelixip.DomainsLink.snapshot/1`. Un domaine encore dans la
+portée d'un compte mais que kelixip ne sert plus reste affiché, coché, et
+marqué « non servi » : le retirer en silence changerait ce que ce compte voit.
+Aucune case cochée vaut portée invalide, jamais « toute l'instance ».
+
+Tant que kelixip n'a jamais donné sa liste, le champ texte reste, pour ne pas
+bloquer la création d'un compte.
+
 Personne ne supprime son propre compte. Le bouton « Supprimer » n'apparaît pas
 sur sa propre ligne. Le `handle_event` refuse en plus l'identifiant du compte
 connecté : un navigateur choisit l'identifiant qu'il envoie.

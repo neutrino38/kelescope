@@ -21,14 +21,23 @@ defmodule KelescopeWeb.AdminsLive do
      |> assign(:editing, nil)
      |> assign(:pending_delete, nil)
      |> assign(:current_id, Scope.id(socket.assigns.current_scope))
+     |> assign_served_domains()
      |> load_accounts()}
+  end
+
+  defp assign_served_domains(socket) do
+    {status, domains} = Kelescope.Kelixip.DomainsLink.snapshot()
+
+    socket
+    |> assign(:link_connected?, status == :connected)
+    |> assign(:served_domains, domains |> Enum.map(& &1.name) |> Enum.sort())
   end
 
   defp load_accounts(socket), do: assign(socket, :accounts, Auth.list_accounts())
 
   @impl true
-  def handle_event("create", %{"admin_id" => id, "level" => level, "scope" => scope}, socket) do
-    attrs = %{id: String.trim(id), level: level, scope: parse_scope(scope)}
+  def handle_event("create", %{"admin_id" => id, "level" => level} = params, socket) do
+    attrs = %{id: String.trim(id), level: level, scope: parse_scope(params)}
 
     case Auth.create_account(attrs) do
       {:ok, {account, code}} ->
@@ -65,11 +74,11 @@ defmodule KelescopeWeb.AdminsLive do
     {:noreply, assign(socket, :editing, nil)}
   end
 
-  def handle_event("update_role", %{"admin_id" => id, "level" => level, "scope" => scope}, socket) do
+  def handle_event("update_role", %{"admin_id" => id, "level" => level} = params, socket) do
     if id == socket.assigns.current_id do
       {:noreply, assign(socket, :error, gettext("Vous ne pouvez pas changer votre propre rôle."))}
     else
-      case Auth.update_role(id, %{level: level, scope: parse_scope(scope)}) do
+      case Auth.update_role(id, %{level: level, scope: parse_scope(params)}) do
         {:ok, _account} ->
           {:noreply, socket |> assign(:editing, nil) |> assign(:error, nil) |> load_accounts()}
 
@@ -129,8 +138,16 @@ defmodule KelescopeWeb.AdminsLive do
     end
   end
 
-  defp parse_scope("all"), do: :all
-  defp parse_scope(domains), do: String.split(domains, [",", " ", "\n"], trim: true)
+  # The checkboxes win when the domain list is known; the text field is what
+  # remains when kelixip has never told us which domains it serves.
+  defp parse_scope(%{"reach" => "all"}), do: :all
+  defp parse_scope(%{"domains" => domains}) when is_list(domains), do: domains
+  defp parse_scope(%{"scope" => "all"}), do: :all
+
+  defp parse_scope(%{"scope" => text}) when is_binary(text),
+    do: String.split(text, [",", " ", "\n"], trim: true)
+
+  defp parse_scope(_params), do: []
 
   defp error_message(:already_taken), do: gettext("Cet identifiant existe déjà.")
   defp error_message(:invalid_id), do: gettext("Identifiant invalide : a-z, 0-9, . _ -, 2 à 32.")
@@ -240,7 +257,12 @@ defmodule KelescopeWeb.AdminsLive do
         <h2 class="mb-2 text-sm font-semibold">{gettext("Rôle de %{id}", id: @editing)}</h2>
         <form phx-submit="update_role" class="flex flex-wrap items-end gap-2 text-sm">
           <input type="hidden" name="admin_id" value={@editing} />
-          <.role_fields account={Enum.find(@accounts, &(&1.id == @editing))} prefix="edit" />
+          <.role_fields
+            account={Enum.find(@accounts, &(&1.id == @editing))}
+            prefix="edit"
+            served={@served_domains}
+            link_connected?={@link_connected?}
+          />
           <button type="submit" class="btn btn-sm btn-primary">{gettext("Enregistrer")}</button>
           <button type="button" phx-click="cancel_edit" class="btn btn-sm">
             {gettext("Annuler")}
@@ -261,7 +283,12 @@ defmodule KelescopeWeb.AdminsLive do
               placeholder="prenom.nom"
             />
           </div>
-          <.role_fields account={nil} prefix="new" />
+          <.role_fields
+            account={nil}
+            prefix="new"
+            served={@served_domains}
+            link_connected?={@link_connected?}
+          />
           <button type="submit" class="btn btn-sm btn-primary">{gettext("Créer")}</button>
         </form>
       </section>
@@ -316,8 +343,12 @@ defmodule KelescopeWeb.AdminsLive do
 
   attr :account, :any, default: nil
   attr :prefix, :string, required: true
+  attr :served, :list, required: true
+  attr :link_connected?, :boolean, required: true
 
   defp role_fields(assigns) do
+    assigns = assign(assigns, :choices, scope_choices(assigns.account, assigns.served))
+
     ~H"""
     <div>
       <label for={"#{@prefix}-level"} class="mb-1 block text-xs uppercase">
@@ -332,20 +363,80 @@ defmodule KelescopeWeb.AdminsLive do
         </option>
       </select>
     </div>
-    <div>
-      <label for={"#{@prefix}-scope"} class="mb-1 block text-xs uppercase">
-        {gettext("Portée")}
+    <fieldset class="space-y-1">
+      <legend class="mb-1 block text-xs uppercase">{gettext("Portée")}</legend>
+
+      <label class="flex items-center gap-2">
+        <input
+          type="radio"
+          name="reach"
+          value="all"
+          class="radio radio-sm"
+          checked={@account && @account.scope == :all}
+        />
+        {gettext("Toute l'instance")}
       </label>
-      <input
-        id={"#{@prefix}-scope"}
-        name="scope"
-        required
-        value={@account && scope_value(@account.scope)}
-        class="input input-sm"
-        placeholder={gettext("all ou domaines séparés par des virgules")}
-      />
-    </div>
+
+      <label class="flex items-center gap-2">
+        <input
+          type="radio"
+          name="reach"
+          value="domains"
+          class="radio radio-sm"
+          checked={@account && is_list(@account.scope)}
+        />
+        {gettext("Domaines choisis")}
+      </label>
+
+      <div :if={@choices != []} class="ml-6 space-y-1">
+        <label :for={choice <- @choices} class="flex items-center gap-2">
+          <input
+            type="checkbox"
+            name="domains[]"
+            value={choice.name}
+            class="checkbox checkbox-sm"
+            checked={choice.checked}
+          />
+          <span class="font-mono text-xs">{choice.name}</span>
+          <span :if={not choice.served} class="text-xs text-warning">
+            {gettext("non servi")}
+          </span>
+        </label>
+      </div>
+
+      <div :if={@choices == []} class="ml-6">
+        <input
+          id={"#{@prefix}-scope"}
+          name="scope"
+          value={@account && scope_value(@account.scope)}
+          class="input input-sm"
+          placeholder={gettext("domaines séparés par des virgules")}
+        />
+        <p class="mt-1 text-xs text-warning">
+          {gettext("kelixip n'a pas encore donné la liste des domaines : saisissez-les.")}
+        </p>
+      </div>
+
+      <p :if={not @link_connected? and @choices != []} class="text-xs text-warning">
+        {gettext("Le lien kelixip est coupé : cette liste peut être en retard.")}
+      </p>
+    </fieldset>
     """
+  end
+
+  # A domain still in someone's scope but no longer served must stay visible and
+  # checked: dropping it silently would change what that account may see.
+  defp scope_choices(account, served) do
+    chosen =
+      case account && account.scope do
+        domains when is_list(domains) -> domains
+        _other -> []
+      end
+
+    (served ++ chosen)
+    |> Enum.uniq()
+    |> Enum.sort()
+    |> Enum.map(&%{name: &1, served: &1 in served, checked: &1 in chosen})
   end
 
   defp scope_value(:all), do: "all"
