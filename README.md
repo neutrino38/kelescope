@@ -26,6 +26,8 @@ Ability to shutdown a scenario + filters on the monitor view
 
 Decision record: [docs/architecture/adr-004-authentification-passkey-certificat.md](docs/architecture/adr-004-authentification-passkey-certificat.md), plan: [docs/conception/phase3-auth/SPEC.md](docs/conception/phase3-auth/SPEC.md).
 
+Enrolling a workstation (French): [docs/utilisation/enrolement.md](docs/utilisation/enrolement.md).
+
 ### Phase 4 - config
 Domain config
 General config
@@ -46,6 +48,30 @@ kelescope IS kelixip_liveview.
 * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
 
 Then visit [`localhost:4000`](http://localhost:4000).
+
+Authentication is off in dev: the app behaves as if a general admin were
+logged in. To work on the real ceremonies, generate a self-signed certificate
+once with `mix phx.gen.cert`, then:
+
+```
+mix run -e 'Kelescope.Auth.bootstrap("dev")'   # service stopped, prints an invitation code
+KELESCOPE_AUTH_REAL=1 mix phx.server           # HTTPS on 4001, mTLS on
+```
+
+Then enrol at [`https://localhost:4001/enroll`](https://localhost:4001/enroll).
+The dev account store lives in `tmp/auth_dev/`.
+
+From another machine, the browser must reach the server by the exact name
+WebAuthn is bound to, and that name must match the served certificate:
+
+```
+PHX_HOST=host.example.org \
+KELESCOPE_SSL_CERTFILE=/etc/ssl/host.example.org/fullchain.pem \
+KELESCOPE_SSL_KEYFILE=/etc/ssl/host.example.org/privkey.pem \
+KELESCOPE_AUTH_REAL=1 mix phx.server
+```
+
+`KELESCOPE_HTTPS_PORT` moves the port away from 4001.
 
 ## Testing
 

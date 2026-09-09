@@ -1,15 +1,16 @@
 # Paquets RPM
 
-kelescope est livré en six paquets.
+kelescope est livré en sept paquets.
 
 | Paquet | Contenu | Taille |
 |---|---|---|
-| `kelescope` | Méta-paquet. Aucun fichier. Il tire les cinq autres. | 7 Ko |
+| `kelescope` | Méta-paquet. Aucun fichier. Il tire les six autres. | 7 Ko |
 | `kelescope-runtime` | Le socle d'exécution : runtime Erlang, dépendances, script de démarrage, service systemd, fichier de configuration. | 7,4 Mo |
-| `kelescope-core` | Le socle applicatif : endpoint, routeur, composants, assets, liens kelixip. | 336 Ko |
+| `kelescope-core` | Le socle applicatif : endpoint, routeur, composants, assets, liens kelixip, authentification. | 336 Ko |
 | `kelescope-monitor` | La page de supervision des scénarios (`/`). | 63 Ko |
 | `kelescope-domaines` | La page des domaines (`/domains`). | 58 Ko |
 | `kelescope-mcu` | La page MCU (`/mcu`). | 96 Ko |
+| `kelescope-admins` | Les pages de gestion des comptes (`/admins`, `/account`). | 60 Ko |
 
 Corriger la page MCU n'expédie donc que 96 Ko, au lieu des 7,6 Mo d'un paquet
 unique.
@@ -31,7 +32,13 @@ Décisions et conception :
     ├── kelescope_core-1.0.0/      ─ kelescope-core
     ├── kelescope_monitor-1.0.0/   ─ kelescope-monitor
     ├── kelescope_domaines-1.0.0/  ─ kelescope-domaines
-    └── kelescope_mcu-1.0.0/       ─ kelescope-mcu
+    ├── kelescope_mcu-1.0.0/       ─ kelescope-mcu
+    └── kelescope_admins-1.0.0/    ─ kelescope-admins
+
+/var/lib/kelescope/auth/          ─ créé au premier démarrage, mode 0700
+├── admins.json                     les comptes, mode 0600
+├── ca.key                          clé de l'autorité, mode 0600
+└── ca.crt                          certificat de l'autorité, mode 0644
 ```
 
 Le socle d'exécution démarre un chargeur. Au démarrage, ce chargeur monte toutes
@@ -123,6 +130,16 @@ par systemd (`EnvironmentFile=`).
 | `KELESCOPE_HTTPS_PORT` | Port HTTPS d'écoute (8443 par défaut). |
 | `KELESCOPE_SSL_CERTFILE` | Chemin du certificat (ou de la chaîne) PEM servi. |
 | `KELESCOPE_SSL_KEYFILE` | Chemin de la clé privée PEM correspondante. |
+| `KELESCOPE_AUTH_DIR` | Répertoire des comptes et de l'autorité de certification (`/var/lib/kelescope/auth` par défaut). |
+| `KELESCOPE_CLIENT_CERT_DAYS` | Validité d'un certificat client, en jours (365 par défaut). |
+| `KELESCOPE_SESSION_HOURS` | Durée d'une session ouverte, en heures (12 par défaut). |
+| `KELESCOPE_INVITE_HOURS` | Validité d'un code d'invitation, en heures (24 par défaut). |
+
+`PHX_HOST` devient critique avec l'authentification : c'est l'identifiant de
+partie liée des passkeys. Le navigateur doit appeler kelescope exactement par
+ce nom. Une adresse IP ou un autre alias DNS fait échouer toute cérémonie
+WebAuthn, avec un message peu clair côté navigateur. La page `/login` affiche
+un avertissement quand l'hôte appelé diffère de `PHX_HOST`.
 
 `kelescope` doit joindre le nœud kelixip par la distribution Erlang : le
 réseau entre les deux hôtes doit autoriser EPMD (port 4369/tcp) et la
@@ -185,6 +202,61 @@ install -m 640 -o root -g kelixip ma-cle.pem         /etc/kelescope/tls/kelescop
   copie ci-dessus puis exécute `systemctl restart kelescope` : sans lui,
   le renouvellement automatique (tous les ~60 jours) ne met pas à jour
   `/etc/kelescope/tls/`.
+
+## Amorcer le premier administrateur
+
+Après installation, kelescope refuse tout accès : aucun compte n'existe. Le
+premier administrateur général se crée depuis le shell de l'hôte, service
+démarré :
+
+```
+/opt/kelescope/bin/kelescope rpc 'Kelescope.Auth.bootstrap("prenom.nom")'
+```
+
+La commande affiche un code d'invitation, valable 24 heures. La personne
+s'enrôle ensuite elle-même sur `https://<PHX_HOST>:8443/enroll` : voir
+[docs/utilisation/enrolement.md](../utilisation/enrolement.md).
+
+`bootstrap/1` refuse dès qu'un compte existe. Un administrateur général crée
+alors les suivants depuis `/admins`.
+
+La commande passe par `rpc` et non par `eval` : le nœud en marche est le seul
+à écrire le fichier des comptes.
+
+## Sauvegarder et restaurer les accès
+
+Tous les accès tiennent dans `KELESCOPE_AUTH_DIR`. Sauvegarder ce répertoire
+entier suffit :
+
+```
+systemctl stop kelescope
+tar czf kelescope-auth-$(date +%F).tar.gz -C /var/lib/kelescope auth
+systemctl start kelescope
+```
+
+Restaurer, c'est remettre le répertoire en place avec ses droits
+(`kelixip:kelixip`, mode 0700), puis redémarrer le service. Les passkeys et
+les certificats déjà installés sur les postes redeviennent valides.
+
+Le répertoire ne contient aucun secret de passkey ni aucune clé privée de
+poste : seulement des clés publiques, des empreintes et des hachages de codes
+d'invitation. Il contient en revanche la clé de l'autorité, qui permet
+d'émettre de nouveaux certificats.
+
+## Perdre tous les accès
+
+Si plus aucun administrateur général ne peut se connecter — passkeys perdues,
+postes détruits — l'accès se rétablit depuis le shell de l'hôte :
+
+```
+/opt/kelescope/bin/kelescope rpc 'Kelescope.Auth.bootstrap("prenom.nom", force: true)'
+```
+
+`force: true` crée un administrateur général de plus, sans toucher aux comptes
+existants. La commande affiche un code d'invitation.
+
+L'accès shell à l'hôte est donc la racine de confiance de kelescope. Le
+protéger comme telle.
 
 ## Démarrer et vérifier
 
