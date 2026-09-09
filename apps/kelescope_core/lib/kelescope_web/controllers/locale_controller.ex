@@ -1,7 +1,7 @@
 defmodule KelescopeWeb.LocaleController do
   use KelescopeWeb, :controller
 
-  @locales ~w(fr en)
+  @locales KelescopeWeb.Locale.locales()
 
   def update(conn, %{"locale" => locale}) when locale in @locales do
     conn

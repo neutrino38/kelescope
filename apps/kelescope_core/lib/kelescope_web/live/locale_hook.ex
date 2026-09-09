@@ -9,14 +9,11 @@ defmodule KelescopeWeb.LocaleHook do
   """
   import Phoenix.Component, only: [assign: 3]
 
-  @locales ~w(fr en)
+  alias KelescopeWeb.Locale
 
   def on_mount(:default, _params, session, socket) do
-    locale = normalize_locale(Map.get(session, "locale"))
+    locale = Locale.normalize(Map.get(session, "locale"))
     Gettext.put_locale(locale)
     {:cont, assign(socket, :locale, locale)}
   end
-
-  defp normalize_locale(locale) when locale in @locales, do: locale
-  defp normalize_locale(_locale), do: "fr"
 end

@@ -12,7 +12,7 @@ defmodule KelescopeWeb.Router do
               KelescopeWeb.AdminsLive
             ]}
 
-  @locales ~w(fr en)
+  alias KelescopeWeb.Locale
 
   pipeline :browser do
     plug :accepts, ["html"]
@@ -37,14 +37,28 @@ defmodule KelescopeWeb.Router do
     plug :accepts, ["json"]
   end
 
+  # The chosen locale is written back into the session, because a LiveView
+  # mounting over the websocket sees the session and never the headers.
   defp put_locale(conn, _opts) do
-    locale = Plug.Conn.get_session(conn, :locale) |> normalize_locale()
+    stored = Plug.Conn.get_session(conn, :locale)
+    locale = if Locale.supported?(stored), do: stored, else: negotiate_locale(conn)
+
     Gettext.put_locale(locale)
-    Plug.Conn.assign(conn, :locale, locale)
+
+    conn
+    |> remember_locale(locale, stored)
+    |> Plug.Conn.assign(:locale, locale)
   end
 
-  defp normalize_locale(locale) when locale in @locales, do: locale
-  defp normalize_locale(_locale), do: "fr"
+  defp remember_locale(conn, locale, locale), do: conn
+  defp remember_locale(conn, locale, _stored), do: Plug.Conn.put_session(conn, :locale, locale)
+
+  defp negotiate_locale(conn) do
+    conn
+    |> Plug.Conn.get_req_header("accept-language")
+    |> List.first()
+    |> Locale.from_accept_language()
+  end
 
   scope "/", KelescopeWeb do
     pipe_through :browser

@@ -34,7 +34,7 @@ msgstr "This is the last passkey of that account."
 #: lib/kelescope_web/admins_live.ex:131
 #, elixir-autogen, elixir-format
 msgid "C'est le dernier poste de ce compte."
-msgstr "This is the last workstation of that account."
+msgstr "That is the account's last workstation."
 
 #: lib/kelescope_web/account_live.ex:128
 #, elixir-autogen, elixir-format
@@ -135,7 +135,7 @@ msgstr "Invalid identifier: a-z, 0-9, . _ -, 2 to 32."
 #: lib/kelescope_web/admins_live.ex:134
 #, elixir-autogen, elixir-format
 msgid "Il doit rester un administrateur général actif."
-msgstr "One enabled general administrator must remain."
+msgstr "At least one general administrator must stay enabled."
 
 #: lib/kelescope_web/account_live.ex:261
 #, elixir-autogen, elixir-format
@@ -219,12 +219,12 @@ msgstr "Passkeys"
 #: lib/kelescope_web/admins_live.ex:320
 #, elixir-autogen, elixir-format
 msgid "Portée"
-msgstr "Reach"
+msgstr "Scope"
 
 #: lib/kelescope_web/admins_live.ex:128
 #, elixir-autogen, elixir-format
 msgid "Portée invalide."
-msgstr "Invalid reach."
+msgstr "Invalid scope."
 
 #: lib/kelescope_web/account_live.ex:119
 #, elixir-autogen, elixir-format

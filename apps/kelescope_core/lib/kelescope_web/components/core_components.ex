@@ -73,41 +73,57 @@ defmodule KelescopeWeb.CoreComponents do
             {gettext("Déconnexion")}
           </.link>
         </div>
-        <div class="flex items-center gap-1 text-xs uppercase">
-          <.link
-            href={~p"/locale/fr"}
-            class={["px-1", @locale == "fr" && "font-semibold underline"]}
-          >
-            FR
-          </.link>
-          <.link
-            href={~p"/locale/en"}
-            class={["px-1", @locale == "en" && "font-semibold underline"]}
-          >
-            EN
-          </.link>
-        </div>
-        <div class="flex items-center gap-1">
-          <span class="text-xs uppercase text-base-content/70">{gettext("Taille du texte")}</span>
-          <button
-            type="button"
-            onclick="window.kelescopeBumpFont(-1)"
-            class="btn btn-xs btn-square"
-            aria-label={gettext("Réduire la taille du texte")}
-          >
-            A-
-          </button>
-          <button
-            type="button"
-            onclick="window.kelescopeBumpFont(1)"
-            class="btn btn-xs btn-square"
-            aria-label={gettext("Augmenter la taille du texte")}
-          >
-            A+
-          </button>
-        </div>
+        <.locale_switch locale={@locale} />
+        <.font_size />
       </div>
     </nav>
+    """
+  end
+
+  @doc """
+  Text size controls, `A-` / `A+`.
+
+  `window.kelescopeBumpFont` lives in the root layout, which every page uses.
+  """
+  def font_size(assigns) do
+    ~H"""
+    <div class="flex items-center gap-1">
+      <span class="text-xs uppercase text-base-content/70">{gettext("Taille du texte")}</span>
+      <button
+        type="button"
+        onclick="window.kelescopeBumpFont(-1)"
+        class="btn btn-xs btn-square"
+        aria-label={gettext("Réduire la taille du texte")}
+      >
+        A-
+      </button>
+      <button
+        type="button"
+        onclick="window.kelescopeBumpFont(1)"
+        class="btn btn-xs btn-square"
+        aria-label={gettext("Augmenter la taille du texte")}
+      >
+        A+
+      </button>
+    </div>
+    """
+  end
+
+  @doc """
+  Language switch, `FR` / `EN`.
+  """
+  attr :locale, :string, default: "fr"
+
+  def locale_switch(assigns) do
+    ~H"""
+    <div class="flex items-center gap-1 text-xs uppercase">
+      <.link href={~p"/locale/fr"} class={["px-1", @locale == "fr" && "font-semibold underline"]}>
+        FR
+      </.link>
+      <.link href={~p"/locale/en"} class={["px-1", @locale == "en" && "font-semibold underline"]}>
+        EN
+      </.link>
+    </div>
     """
   end
 

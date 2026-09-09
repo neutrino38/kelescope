@@ -331,4 +331,4 @@ msgstr "empty: allocated from the domain's range"
 #: lib/kelescope_web/mcu_live.ex:249
 #, elixir-autogen, elixir-format
 msgid "Action refusée : ce domaine est hors de votre portée."
-msgstr "Action refused: this domain is outside your reach."
+msgstr "Action refused: this domain is outside your scope."

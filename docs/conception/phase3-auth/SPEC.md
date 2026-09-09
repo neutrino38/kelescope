@@ -367,7 +367,11 @@ connecté, lui, relit toujours le certificat réel de la socket.
   Une révocation ou une désactivation coupe la session LiveView en cours, sans
   attendre le prochain montage.
 - `KelescopeWeb.EnrollLive` (`/enroll`), `KelescopeWeb.LoginLive` (`/login`),
-  `KelescopeWeb.SessionController` (`POST /session`, `DELETE /session`).
+  `KelescopeWeb.SessionController` (`POST /session`, `DELETE /session`). Ces
+  deux pages n'affichent pas la barre de navigation. Elles appellent donc
+  `CoreComponents.locale_switch/1` et `CoreComponents.font_size/1`
+  elles-mêmes, sinon un poste refusé n'aurait aucun moyen de lire son refus
+  ([docs/reference/langues.md](../../reference/langues.md)).
 - Hook JavaScript `Passkey` (`assets/js/passkey.js`) : il appelle
   `navigator.credentials.create` ou `.get` avec les options poussées par le
   LiveView, encode les tampons en base64url, et renvoie le résultat par
@@ -376,8 +380,8 @@ connecté, lui, relit toujours le certificat réel de la socket.
   téléchargement du PKCS#12, qu'un LiveView ne sait pas déclencher seul.
 - `CoreComponents.nav/1` : identifiant et rôle du compte, liens vers `/account`,
   vers `/admins` pour un administrateur général, bouton « Déconnexion », bandeau
-  du mode dev. Les pages appellent ce composant ; `Layouts.app/1` n'est pas
-  utilisé dans ce dépôt.
+  du mode dev, sélecteur de langue et taille du texte. Les pages appellent ce
+  composant ; `Layouts.app/1` n'est pas utilisé dans ce dépôt.
 - `CoreComponents.admin_confirm_modal/1` : le champ « Administrateur » est
   retiré. L'événement de confirmation resoumet les `confirm_values` seuls. Les
   appelants prennent l'identifiant dans `current_scope`.

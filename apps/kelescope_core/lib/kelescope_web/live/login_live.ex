@@ -79,6 +79,10 @@ defmodule KelescopeWeb.LoginLive do
   def render(assigns) do
     ~H"""
     <div id="login" phx-hook="Passkey" class="mx-auto max-w-lg p-6">
+      <div class="mb-4 flex items-center justify-end gap-3">
+        <.locale_switch locale={@locale} />
+        <.font_size />
+      </div>
       <h1 class="mb-4 text-lg font-semibold">{gettext("Connexion à kelescope")}</h1>
 
       <div :if={@wrong_host} class="mb-4 rounded bg-warning/20 p-3 text-sm">
@@ -103,10 +107,10 @@ defmodule KelescopeWeb.LoginLive do
       </div>
 
       <div :if={@state == :refused} class="space-y-3 text-sm">
-        <p class="font-semibold">{gettext("Poste refusé")}</p>
+        <p class="font-semibold">{gettext("Accès refusé")}</p>
         <p>
           {gettext(
-            "Le certificat présenté n'ouvre aucun accès. Demandez une réinitialisation à un administrateur général."
+            "Votre certificat client SSL n'est associé à aucun accès kelescope. Demandez à un administrateur général de vous en créer un."
           )}
         </p>
       </div>

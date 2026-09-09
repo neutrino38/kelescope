@@ -93,6 +93,13 @@ defmodule KelescopeWeb.EnrollLiveTest do
              Auth.authenticate_certificate(certificate.fingerprint)
   end
 
+  test "carries the text size controls, having no navigation bar", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/enroll")
+
+    assert has_element?(view, ~s|button[onclick="window.kelescopeBumpFont(-1)"]|)
+    assert has_element?(view, ~s|button[onclick="window.kelescopeBumpFont(1)"]|)
+  end
+
   defp enrol(conn, id, code, authenticator) do
     {:ok, view, _html} = live(conn, ~p"/enroll")
 

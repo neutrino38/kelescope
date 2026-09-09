@@ -17,7 +17,7 @@ defmodule KelescopeWeb.LoginLiveTest do
   test "an unknown certificate is refused without naming anyone", %{conn: conn} do
     {:ok, _view, html} = conn |> with_certificate(stray_certificate()) |> live(~p"/login")
 
-    assert html =~ "Poste refusé"
+    assert html =~ "Accès refusé"
   end
 
   test "a revoked certificate is refused", %{conn: conn} do
@@ -27,7 +27,7 @@ defmodule KelescopeWeb.LoginLiveTest do
 
     {:ok, _view, html} = conn |> with_certificate(admin) |> live(~p"/login")
 
-    assert html =~ "Poste refusé"
+    assert html =~ "Accès refusé"
     refute html =~ admin.id
   end
 
@@ -106,6 +106,13 @@ defmodule KelescopeWeb.LoginLiveTest do
 
     assert redirected_to(conn) == "/login"
     assert get_session(conn, "admin_id") == nil
+  end
+
+  test "carries the text size controls, having no navigation bar", %{conn: conn} do
+    {:ok, view, _html} = live(conn, ~p"/login")
+
+    assert has_element?(view, ~s|button[onclick="window.kelescopeBumpFont(-1)"]|)
+    assert has_element?(view, ~s|button[onclick="window.kelescopeBumpFont(1)"]|)
   end
 
   defp challenge(options) do

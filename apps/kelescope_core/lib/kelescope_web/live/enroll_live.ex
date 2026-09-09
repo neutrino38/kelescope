@@ -97,6 +97,10 @@ defmodule KelescopeWeb.EnrollLive do
   def render(assigns) do
     ~H"""
     <div id="enroll" phx-hook="Passkey" class="mx-auto max-w-lg p-6">
+      <div class="mb-4 flex items-center justify-end gap-3">
+        <.locale_switch locale={@locale} />
+        <.font_size />
+      </div>
       <h1 class="mb-4 text-lg font-semibold">{gettext("Enrôlement d'un poste")}</h1>
 
       <div :if={@error} class="mb-4 rounded bg-error/20 p-3 text-sm">{@error}</div>
