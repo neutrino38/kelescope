@@ -26,6 +26,8 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
        domain_filter: nil,
        kelixip_status: Kelescope.Kelixip.StatusPoller.snapshot(),
        auth_db: Kelescope.Kelixip.AuthDbPoller.snapshot(),
+       expanded_status: false,
+       expanded_auth_db: false,
        selected_mediaserver: nil,
        pending_shutdown: nil
      )}
@@ -38,6 +40,17 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
 
   def handle_event("filter", %{"domain" => domain}, socket) do
     {:noreply, assign(socket, :domain_filter, domain)}
+  end
+
+  # One clause per panel rather than one that derives an assign name from the
+  # event: the panel comes from the browser, and String.to_atom on it would let
+  # any word reach the socket.
+  def handle_event("toggle_panel", %{"panel" => "status"}, socket) do
+    {:noreply, update(socket, :expanded_status, &(!&1))}
+  end
+
+  def handle_event("toggle_panel", %{"panel" => "auth-db"}, socket) do
+    {:noreply, update(socket, :expanded_auth_db, &(!&1))}
   end
 
   def handle_event("show_mediaserver", %{"name" => name}, socket) do
@@ -126,9 +139,17 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
         kelixip: {@link_status}
       </div>
 
-      <.status_panel :if={Scope.global?(@current_scope)} status={@kelixip_status} />
+      <.status_panel
+        :if={Scope.global?(@current_scope)}
+        status={@kelixip_status}
+        expanded={@expanded_status}
+      />
 
-      <.auth_db_panel result={@auth_db} detailed={Scope.global?(@current_scope)} />
+      <.auth_db_panel
+        result={@auth_db}
+        detailed={Scope.global?(@current_scope)}
+        expanded={@expanded_auth_db}
+      />
 
       <form id="domain-filter-form" phx-change="filter" class="mb-3 flex items-center gap-2 text-sm">
         <label for="domain-filter">{gettext("Domaine")}</label>
@@ -315,7 +336,30 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
     """
   end
 
+  attr :panel, :string, required: true
+  attr :label, :string, required: true
+  attr :expanded, :boolean, required: true
+
+  defp panel_toggle(assigns) do
+    ~H"""
+    <button
+      id={"#{@panel}-panel-toggle"}
+      type="button"
+      phx-click="toggle_panel"
+      phx-value-panel={@panel}
+      aria-expanded={to_string(@expanded)}
+      class="flex items-center gap-2 text-left"
+    >
+      <span aria-hidden="true" class="text-base-content/40">
+        {if @expanded, do: "▾", else: "▸"}
+      </span>
+      <span class="text-xs uppercase text-base-content/70">{@label}</span>
+    </button>
+    """
+  end
+
   attr :status, :map, default: nil
+  attr :expanded, :boolean, required: true
 
   def status_panel(%{status: nil} = assigns) do
     ~H"""
@@ -328,7 +372,9 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   def status_panel(assigns) do
     ~H"""
     <div class="mb-4 rounded border p-3">
-      <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <.panel_toggle panel="status" label={gettext("Statut kelixip")} expanded={@expanded} />
+
+      <div class="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <div>
           <div class="text-xs uppercase text-base-content/70">{gettext("Nœud")}</div>
           <div class="text-sm font-medium">{@status.node}</div>
@@ -347,53 +393,55 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
         </div>
       </div>
 
-      <div class="mt-3">
-        <div class="text-xs uppercase text-base-content/70">{gettext("Écouteurs")}</div>
-        <div class="mt-1 flex flex-wrap gap-1">
-          <span
-            :for={l <- @status.listeners}
-            class={[
-              "rounded px-2 py-0.5 text-xs font-medium",
-              l.up && "bg-success/15 text-success",
-              !l.up && "bg-error/15 text-error"
-            ]}
-          >
-            {l.proto}:{l.addr}:{l.port}
-          </span>
-          <span :if={@status.listeners == []} class="text-xs text-base-content/70">
-            {gettext("(aucun)")}
-          </span>
+      <div :if={@expanded}>
+        <div class="mt-3">
+          <div class="text-xs uppercase text-base-content/70">{gettext("Écouteurs")}</div>
+          <div class="mt-1 flex flex-wrap gap-1">
+            <span
+              :for={l <- @status.listeners}
+              class={[
+                "rounded px-2 py-0.5 text-xs font-medium",
+                l.up && "bg-success/15 text-success",
+                !l.up && "bg-error/15 text-error"
+              ]}
+            >
+              {l.proto}:{l.addr}:{l.port}
+            </span>
+            <span :if={@status.listeners == []} class="text-xs text-base-content/70">
+              {gettext("(aucun)")}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div class="mt-3">
-        <div class="text-xs uppercase text-base-content/70">{gettext("Pool médias")}</div>
-        <div class="mt-1 flex flex-wrap gap-1">
-          <button
-            :for={m <- @status.media_pool}
-            type="button"
-            phx-click="show_mediaserver"
-            phx-value-name={m.name}
-            class={[
-              "rounded px-2 py-0.5 text-xs font-medium",
-              m.enabled && m.healthy && "bg-success/15 text-success",
-              m.enabled && !m.healthy && "bg-error/15 text-error",
-              !m.enabled && "bg-base-300 text-base-content/60"
-            ]}
-          >
-            {m.name}: {if m.enabled, do: "on", else: "off"}/{if m.healthy, do: "up", else: "down"}
-          </button>
-          <span :if={@status.media_pool == []} class="text-xs text-base-content/70">
-            {gettext("(vide)")}
-          </span>
+        <div class="mt-3">
+          <div class="text-xs uppercase text-base-content/70">{gettext("Pool médias")}</div>
+          <div class="mt-1 flex flex-wrap gap-1">
+            <button
+              :for={m <- @status.media_pool}
+              type="button"
+              phx-click="show_mediaserver"
+              phx-value-name={m.name}
+              class={[
+                "rounded px-2 py-0.5 text-xs font-medium",
+                m.enabled && m.healthy && "bg-success/15 text-success",
+                m.enabled && !m.healthy && "bg-error/15 text-error",
+                !m.enabled && "bg-base-300 text-base-content/60"
+              ]}
+            >
+              {m.name}: {if m.enabled, do: "on", else: "off"}/{if m.healthy, do: "up", else: "down"}
+            </button>
+            <span :if={@status.media_pool == []} class="text-xs text-base-content/70">
+              {gettext("(vide)")}
+            </span>
+          </div>
         </div>
-      </div>
 
-      <div :if={map_size(other_module_status(@status)) > 0} class="mt-3">
-        <div class="text-xs uppercase text-base-content/70">{gettext("Modules")}</div>
-        <div class="mt-1 space-y-0.5 text-sm">
-          <div :for={{name, summary} <- Enum.sort_by(other_module_status(@status), &elem(&1, 0))}>
-            <span class="font-medium">{name}</span>: {format_module_summary(summary)}
+        <div :if={map_size(other_module_status(@status)) > 0} class="mt-3">
+          <div class="text-xs uppercase text-base-content/70">{gettext("Modules")}</div>
+          <div class="mt-1 space-y-0.5 text-sm">
+            <div :for={{name, summary} <- Enum.sort_by(other_module_status(@status), &elem(&1, 0))}>
+              <span class="font-medium">{name}</span>: {format_module_summary(summary)}
+            </div>
           </div>
         </div>
       </div>
@@ -409,6 +457,7 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
   """
   attr :result, :any, required: true
   attr :detailed, :boolean, required: true
+  attr :expanded, :boolean, required: true
 
   def auth_db_panel(%{result: nil} = assigns) do
     ~H"""
@@ -444,7 +493,15 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
     ~H"""
     <div class="mb-4 rounded border p-3">
       <div class="flex items-center gap-2">
-        <span class="text-xs uppercase text-base-content/70">{gettext("Connexion BDD")}</span>
+        <.panel_toggle
+          :if={@detailed}
+          panel="auth-db"
+          label={gettext("Connexion BDD")}
+          expanded={@expanded}
+        />
+        <span :if={!@detailed} class="text-xs uppercase text-base-content/70">
+          {gettext("Connexion BDD")}
+        </span>
         <span class={[
           "rounded px-2 py-0.5 text-xs font-medium",
           auth_db_up(@details) == true && "bg-success/15 text-success",
@@ -455,7 +512,10 @@ defmodule KelescopeWeb.ScenarioMonitorLive do
         </span>
       </div>
 
-      <div :if={@detailed} class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3">
+      <div
+        :if={@detailed and @expanded}
+        class="mt-2 grid grid-cols-2 gap-x-4 gap-y-1 text-sm sm:grid-cols-3"
+      >
         <div :for={{key, value} <- auth_db_rows(@details)}>
           <span class="text-xs uppercase text-base-content/70">{key}</span>
           <span class="ml-1 font-medium">{value}</span>

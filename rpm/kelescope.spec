@@ -9,8 +9,8 @@
 
 # Versions minimales entre paquets. A relever a la main quand une partie
 # commence a employer une nouveaute du socle.
-%global min_runtime 0.2.0
-%global min_core 0.2.0
+%global min_runtime 0.4.0
+%global min_core 0.4.0
 
 Name:           kelescope
 Version:        0.4.0

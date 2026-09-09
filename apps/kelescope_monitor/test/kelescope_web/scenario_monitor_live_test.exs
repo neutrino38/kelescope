@@ -14,7 +14,32 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
     assert render(view) =~ "kelixip: connected"
     assert render(view) =~ "example.com"
     assert render(view) =~ "alice"
-    assert render(view) =~ "Sessions actives"
+    assert render(view) =~ "Statut kelixip"
+  end
+
+  test "opens the two panels on demand, and folds them back", %{conn: conn} do
+    {:ok, view, html} = live(conn, ~p"/")
+
+    # The scenario table is what the page is for: both panels arrive folded so
+    # it starts at the top of the screen. Folded still shows its first line, so
+    # the page says something without a click.
+    assert html =~ "Statut kelixip"
+    assert html =~ "Sessions actives"
+    refute html =~ "Pool médias"
+    assert html =~ "connectée"
+    refute html =~ "kelixip-db.example.org"
+
+    html = view |> element("#status-panel-toggle") |> render_click()
+    assert html =~ "Pool médias"
+
+    html = view |> element("#auth-db-panel-toggle") |> render_click()
+    assert html =~ "kelixip-db.example.org"
+
+    # Each panel folds on its own.
+    html = view |> element("#status-panel-toggle") |> render_click()
+    refute html =~ "Pool médias"
+    assert html =~ "Sessions actives"
+    assert html =~ "kelixip-db.example.org"
   end
 
   test "updates the status panel on receipt of a kelixip_status message", %{conn: conn} do
@@ -70,6 +95,7 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
   } do
     {:ok, view, html} = live(conn, ~p"/")
     refute html =~ "Médiaserveur"
+    view |> element("#status-panel-toggle") |> render_click()
 
     html = view |> element("button[phx-value-name='ms1']") |> render_click()
     assert html =~ "Médiaserveur"
@@ -86,6 +112,7 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
     conn: conn
   } do
     {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#status-panel-toggle") |> render_click()
 
     html = view |> element("button[phx-value-name='ms2']") |> render_click()
     assert html =~ "Médiaserveur"
@@ -94,7 +121,8 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
   end
 
   test "shows the auth_db state from the module's own control command", %{conn: conn} do
-    {:ok, view, html} = live(conn, ~p"/")
+    {:ok, view, _html} = live(conn, ~p"/")
+    html = view |> element("#auth-db-panel-toggle") |> render_click()
 
     # A global scope reads the detail the module reports.
     assert html =~ "Connexion BDD"
@@ -120,6 +148,7 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
 
   test "lists every module status kelixip reports, with no exception", %{conn: conn} do
     {:ok, view, _html} = live(conn, ~p"/")
+    view |> element("#status-panel-toggle") |> render_click()
 
     send(
       view.pid,
@@ -194,6 +223,9 @@ defmodule KelescopeWeb.ScenarioMonitorLiveTest do
 
       assert html =~ "Connexion BDD"
       assert html =~ "connectée"
+
+      # Nothing to unfold: the detail is the part this scope never reads.
+      refute html =~ "auth-db-panel-toggle"
 
       refute html =~ "kelixip-db.example.org"
       refute html =~ "3306"
