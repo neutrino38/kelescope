@@ -1,0 +1,63 @@
+# CI for the kelescope umbrella.
+#
+#   push on a branch -> compile + test suite
+#   push of a tag    -> compile + test suite + RPMs, kept as artifacts
+#
+# The runner must be an Alma Linux 9 host carrying the packaging toolchain
+# (Erlang/OTP >= 26, Elixir >= 1.17 in PATH, rpmbuild) with network access to
+# hex.pm, GitHub and npmjs.org — docs/maintenance/paquet-rpm.md explains why:
+# the release embeds a natively-linked ERTS, and the %build section downloads
+# the deps and the esbuild/tailwind binaries itself.
+
+stages:
+  - build
+  - test
+  - package
+
+default:
+  tags: [al9, rpm]
+  before_script:
+    - mix local.hex --force
+    - mix local.rebar --force
+  cache:
+    key: "kelescope-$CI_COMMIT_REF_SLUG"
+    paths:
+      - deps/
+      - _build/
+
+# Same bar as the `precommit` alias in mix.exs: a warning is a failure.
+compile:
+  stage: build
+  script:
+    - mix deps.get
+    - mix compile --warnings-as-errors
+
+test:
+  stage: test
+  script:
+    - mix deps.get
+    - mix test
+
+package:
+  stage: package
+  rules:
+    - if: $CI_COMMIT_TAG
+  script:
+    # A tag names a version; rpm/kelescope.spec decides what the packages are
+    # called, and nothing else compares the two. rpm identifies a package by its
+    # NEVRA, so a 0.4.1 tag archiving 0.4.0 packages would install as a no-op on
+    # a host that already runs 0.4.0. The mix.exs versions are frozen ABI
+    # numbers, not the product version (docs/maintenance/paquet-rpm.md).
+    - |
+      version=$(sed -n 's/^Version: *\([0-9][^ ]*\).*/\1/p' rpm/kelescope.spec | head -1)
+      if [ "$CI_COMMIT_TAG" != "$version" ] && [ "$CI_COMMIT_TAG" != "v$version" ]; then
+        echo "tag $CI_COMMIT_TAG does not name version $version (rpm/kelescope.spec)" >&2
+        exit 1
+      fi
+    # build.sh drops the packages in the directory it is launched from.
+    - cd rpm && ./build.sh
+  artifacts:
+    name: "kelescope-$CI_COMMIT_TAG"
+    expire_in: 1 year
+    paths:
+      - rpm/*.rpm
